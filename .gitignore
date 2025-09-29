@@ -1,0 +1,40 @@
+# --- OS noise ---
+.DS_Store
+Thumbs.db
+
+.idea/
+.vscode/
+.vscode/
+
+# --- NetBeans (Ant) project ---
+/nbproject/private/
+/build/
+/dist/
+/nbbuild/
+/nbdist/
+
+/nbactions.xml
+/nb-configuration.xml
+
+# --- Java / Ant outputs ---
+*.class
+*.log
+*.tmp
+*.swp
+hs_err_pid*
+*.orig
+*.rej
+
+# --- Dependencies/JARs  ---
+# lib/**/*.jar
+
+/exports/
+/out/
+/logs/
+/reports/
+
+/app/*.md
+/app/**/*.md
+
+
+
