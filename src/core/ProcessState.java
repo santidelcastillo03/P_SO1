@@ -9,5 +9,11 @@ package core;
  * @author santiagodelcastillo
  */
 public enum ProcessState {
-    
+	NUEVO,
+	LISTO,
+	EJECUCION,
+	BLOQUEADO,
+	TERMINADO,
+	LISTO_SUSPENDIDO,
+	BLOQUEADO_SUSPENDIDO;
 }
