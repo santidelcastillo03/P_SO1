@@ -47,10 +47,20 @@ p_so1/
 |       |-- MetricsCalculator.java
 |       |-- ProcessData.java
 |
+|-- nbproject/
+|   |-- build-impl.xml
+|   |-- genfiles.properties
+|   |-- project.properties
+|   |-- project.xml
+|   +-- private/
+|       |-- private.properties
+|       |-- private.xml
 |
 |-- build.xml
 |-- manifest.mf
 |-- README.md
+|-- Plan_Agil_Simulador_SO.md
+|-- Estructura_Simulador_SO_NetBeans.md
 ```
 
 ## Explicación de la Estructura
