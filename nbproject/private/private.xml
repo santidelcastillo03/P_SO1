@@ -3,15 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/p_so1/P_so1.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/core/OperatingSystem.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/core/ProcessState.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/core/ProcessControlBlock.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/util/ProcessData.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/util/MetricsCalculator.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/util/ConfigManager.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/core/CPU.java</file>
-            <file>file:/C:/Users/Santiago/Desktop/p_so1/src/util/IOHandler.java</file>
+            <file>file:/C:/Users/angel/Desktop/P_SO1/src/datastructures/Node.java</file>
+            <file>file:/C:/Users/angel/Desktop/P_SO1/src/datastructures/CustomQueue.java</file>
+            <file>file:/C:/Users/angel/Desktop/P_SO1/src/datastructures/Lista.java</file>
+            <file>file:/C:/Users/angel/Desktop/P_SO1/src/datastructures/NodoLista.java</file>
         </group>
     </open-files>
 </project-private>
