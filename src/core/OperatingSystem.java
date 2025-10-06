@@ -156,6 +156,17 @@ public class OperatingSystem {
             return finishedProcessesList.size();
         }
     }
+    
+    /**
+     * Extrae y devuelve el siguiente proceso de la cola de listos (usado por el planificador).
+     * Este método se utiliza cuando el planificador selecciona un proceso para despachar a la CPU.
+     * @return siguiente proceso de la cola de listos o null si está vacía
+     */
+    public ProcessControlBlock dequeueReady() {
+        synchronized (stateLock) {
+            return readyQueue.dequeue();
+        }
+    }
 
     /**
      * Método interno que sincroniza el cambio de estado y la inserción en la cola

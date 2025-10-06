@@ -84,6 +84,19 @@ public class CPU {
     }
 
     /**
+     * Libera el proceso actualmente cargado en la CPU (la deja ociosa).
+     * Útil cuando un proceso termina y debe ser removido de la CPU.
+     */
+    public void releaseProcess() {
+        if (currentProcess != null) {
+            LOGGER.info(() -> String.format("CPU libera proceso %s (#%d)",
+                    currentProcess.getProcessName(),
+                    currentProcess.getProcessId()));
+            currentProcess = null;
+        }
+    }
+
+    /**
      * Verifica si el proceso en ejecución debe pasar a BLOQUEADO por evento de I/O y coordina la transición.
      * @param programCounter valor alcanzado tras ejecutar el ciclo
      */
