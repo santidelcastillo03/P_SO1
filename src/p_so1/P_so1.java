@@ -10,8 +10,10 @@ import core.ProcessControlBlock;
 import util.IOHandler;
 
 /**
- * Programa principal para probar el simulador de SO.
- * Crea procesos de prueba (CPU-bound e I/O-bound) y simula su ejecución.
+ * Programa principal para probar el simulador de SO con gestión de suspensión (US 1.7).
+ * Demuestra el swapping: cuando la memoria está llena (MAX=4), procesos adicionales 
+ * se suspenden (LISTO_SUSPENDIDO) y se restauran cuando hay espacio disponible.
+ * 
  * @author Santiago
  */
 public class P_so1 {
@@ -20,9 +22,10 @@ public class P_so1 {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        System.out.println("╔════════════════════════════════════════════════════╗");
-        System.out.println("║   SIMULADOR DE SISTEMA OPERATIVO - PRUEBA BÁSICA   ║");
-        System.out.println("╚════════════════════════════════════════════════════╝\n");
+        System.out.println("╔════════════════════════════════════════════════════════════════╗");
+        System.out.println("║   SIMULADOR DE SO - PRUEBA DE GESTIÓN DE SUSPENSIÓN (US 1.7)  ║");
+        System.out.println("║              MAX_PROCESSES_IN_MEMORY = 4                       ║");
+        System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
         
         // Crear componentes del sistema
         OperatingSystem os = new OperatingSystem();
@@ -34,53 +37,94 @@ public class P_so1 {
         ioThread.setDaemon(true);
         ioThread.start();
         
-        System.out.println("✓ Sistema operativo inicializado");
+        System.out.println("✓ Sistema operativo inicializado (Límite de memoria: 4 procesos)");
         System.out.println("✓ CPU inicializada");
         System.out.println("✓ IOHandler iniciado en hilo separado\n");
         
-        // Crear procesos de prueba
-        System.out.println("┌─────────────────────────────────┐");
-        System.out.println("│     CREANDO PROCESOS DE PRUEBA  │");
-        System.out.println("└─────────────────────────────────┘\n");
+        // Crear procesos de prueba - CREAMOS 6 PARA FORZAR SUSPENSIÓN
+        System.out.println("┌──────────────────────────────────────────────────────────┐");
+        System.out.println("│     CREANDO 6 PROCESOS (excede límite de memoria = 4)   │");
+        System.out.println("└──────────────────────────────────────────────────────────┘\n");
         
-        // Proceso 1: CPU-bound (sin I/O)
-    ProcessControlBlock proc1 = new ProcessControlBlock("P1-CPU");
-    proc1.setTotalInstructions(10);
-    proc1.setIOBound(false);
-    System.out.println("✓ " + proc1.getProcessName() + " creado (CPU-bound, 10 instrucciones)");
+        // Proceso 1: CPU-bound corto
+        ProcessControlBlock proc1 = new ProcessControlBlock("P1-Short");
+        proc1.setTotalInstructions(5);
+        proc1.setIOBound(false);
+        System.out.println("✓ " + proc1.getProcessName() + " creado (CPU-bound, 5 instrucciones)");
         
-    // Proceso 2: I/O-bound
-    ProcessControlBlock proc2 = new ProcessControlBlock("P2-IO");
-    proc2.setTotalInstructions(15);
-    proc2.setIOBound(true);
-    proc2.setIoExceptionCycle(5); // I/O en ciclo 5
-    proc2.setIoDuration(3); // 3 ciclos de duración
-    System.out.println("✓ " + proc2.getProcessName() + " creado (I/O-bound, interrumpe en ciclo 5, dura 3 ciclos)");
+        // Proceso 2: CPU-bound mediano
+        ProcessControlBlock proc2 = new ProcessControlBlock("P2-Medium");
+        proc2.setTotalInstructions(8);
+        proc2.setIOBound(false);
+        System.out.println("✓ " + proc2.getProcessName() + " creado (CPU-bound, 8 instrucciones)");
         
-    // Proceso 3: CPU-bound simple
-    ProcessControlBlock proc3 = new ProcessControlBlock("P3-CPU");
-    proc3.setTotalInstructions(8);
-    proc3.setIOBound(false);
-    System.out.println("✓ " + proc3.getProcessName() + " creado (CPU-bound, 8 instrucciones)");
+        // Proceso 3: I/O-bound
+        ProcessControlBlock proc3 = new ProcessControlBlock("P3-IO");
+        proc3.setTotalInstructions(12);
+        proc3.setIOBound(true);
+        proc3.setIoExceptionCycle(4); // I/O en ciclo 4
+        proc3.setIoDuration(2); // 2 ciclos de duración
+        System.out.println("✓ " + proc3.getProcessName() + " creado (I/O-bound, interrumpe en ciclo 4, dura 2 ciclos)");
+        
+        // Proceso 4: CPU-bound largo
+        ProcessControlBlock proc4 = new ProcessControlBlock("P4-Long");
+        proc4.setTotalInstructions(10);
+        proc4.setIOBound(false);
+        System.out.println("✓ " + proc4.getProcessName() + " creado (CPU-bound, 10 instrucciones)");
+        
+        // Proceso 5: CPU-bound (será suspendido)
+        ProcessControlBlock proc5 = new ProcessControlBlock("P5-ToSuspend");
+        proc5.setTotalInstructions(6);
+        proc5.setIOBound(false);
+        System.out.println("✓ " + proc5.getProcessName() + " creado (CPU-bound, 6 instrucciones) ⚠️ CANDIDATO A SUSPENSIÓN");
+        
+        // Proceso 6: CPU-bound (será suspendido)
+        ProcessControlBlock proc6 = new ProcessControlBlock("P6-ToSuspend");
+        proc6.setTotalInstructions(7);
+        proc6.setIOBound(false);
+        System.out.println("✓ " + proc6.getProcessName() + " creado (CPU-bound, 7 instrucciones) ⚠️ CANDIDATO A SUSPENSIÓN");
         
         // Agregar procesos a la cola de listos
-        System.out.println("\n┌─────────────────────────────────┐");
-        System.out.println("│  CARGANDO A COLA DE LISTOS      │");
-        System.out.println("└─────────────────────────────────┘");
-        os.moveToReady(proc1);
-        os.moveToReady(proc2);
-        os.moveToReady(proc3);
+        System.out.println("\n┌──────────────────────────────────────────────────────────┐");
+        System.out.println("│  CARGANDO 6 PROCESOS (Límite: 4 en memoria)             │");
+        System.out.println("│  Esperamos que P5 y P6 sean SUSPENDIDOS automáticamente │");
+        System.out.println("└──────────────────────────────────────────────────────────┘");
         
-        System.out.println("\n📊 Estado inicial:");
+        System.out.println("\n[1/6] Moviendo P1 a readyQueue...");
+        os.moveToReady(proc1);
+        printSystemState(os, cpu);
+        
+        System.out.println("\n[2/6] Moviendo P2 a readyQueue...");
+        os.moveToReady(proc2);
+        printSystemState(os, cpu);
+        
+        System.out.println("\n[3/6] Moviendo P3 a readyQueue...");
+        os.moveToReady(proc3);
+        printSystemState(os, cpu);
+        
+        System.out.println("\n[4/6] Moviendo P4 a readyQueue...");
+        os.moveToReady(proc4);
+        printSystemState(os, cpu);
+        
+        System.out.println("\n⚠️ [5/6] Moviendo P5 a readyQueue (MEMORIA LLENA - SUSPENDERÁ P1)...");
+        os.moveToReady(proc5);
+        printSystemState(os, cpu);
+        
+        System.out.println("\n⚠️ [6/6] Moviendo P6 a readyQueue (MEMORIA LLENA - SUSPENDERÁ P2)...");
+        os.moveToReady(proc6);
+        printSystemState(os, cpu);
+        
+        System.out.println("\n📊 Estado inicial después de cargar 6 procesos:");
         printSystemState(os, cpu);
         
         // Simular ejecución de procesos (simple FCFS manual)
-        System.out.println("\n┌═════════════════════════════════════════════════════┐");
-        System.out.println("│          INICIANDO SIMULACIÓN (FCFS SIMPLE)         │");
-        System.out.println("└═════════════════════════════════════════════════════┘\n");
+        System.out.println("\n┌════════════════════════════════════════════════════════════════┐");
+        System.out.println("│          INICIANDO SIMULACIÓN CON SWAPPING (FCFS)             │");
+        System.out.println("│  A medida que procesos terminen, los suspendidos se restauran │");
+        System.out.println("└════════════════════════════════════════════════════════════════┘\n");
         
         int globalClock = 0;
-        int maxCycles = 50; // Límite de seguridad
+        int maxCycles = 100; // Aumentado para dar tiempo a 6 procesos
         
         while (globalClock < maxCycles) {
             globalClock++;
@@ -121,12 +165,13 @@ public class P_so1 {
                              " | Blocked: " + os.blockedQueueSize() + 
                              " | Finished: " + os.finishedQueueSize());
             
-            // Condición de salida
-            if (os.finishedQueueSize() == 3 && os.readyQueueSize() == 0 && 
+            // Condición de salida - ahora son 6 procesos
+            if (os.finishedQueueSize() == 6 && os.readyQueueSize() == 0 && 
                 os.blockedQueueSize() == 0 && cpu.isIdle()) {
-                System.out.println("\n🎉 ═══════════════════════════════════════════════════");
-                System.out.println("    TODOS LOS PROCESOS FINALIZADOS EXITOSAMENTE");
-                System.out.println("   ═══════════════════════════════════════════════════");
+                System.out.println("\n🎉 ══════════════════════════════════════════════════════════");
+                System.out.println("    TODOS LOS 6 PROCESOS FINALIZADOS EXITOSAMENTE");
+                System.out.println("    (incluyendo los que fueron suspendidos y restaurados)");
+                System.out.println("   ══════════════════════════════════════════════════════════");
                 break;
             }
             
@@ -162,13 +207,18 @@ public class P_so1 {
     }
     
     /**
-     * Imprime el estado actual del sistema.
+     * Imprime el estado actual del sistema incluyendo colas de suspendidos.
      */
     private static void printSystemState(OperatingSystem os, CPU cpu) {
-        System.out.println("  • Ready Queue: " + os.readyQueueSize() + " procesos");
-        System.out.println("  • Blocked Queue: " + os.blockedQueueSize() + " procesos");
-        System.out.println("  • Finished: " + os.finishedQueueSize() + " procesos");
-        System.out.println("  • CPU: " + (cpu.isIdle() ? "IDLE" : 
+        System.out.println("  ┌─ ESTADO DEL SISTEMA ────────────────────────────────┐");
+        System.out.println("  │ 💾 Procesos en Memoria: " + os.getProcessesInMemory() + " / 4 (límite)");
+        System.out.println("  │ ✅ Ready Queue:         " + os.readyQueueSize() + " procesos");
+        System.out.println("  │ 🔒 Blocked Queue:       " + os.blockedQueueSize() + " procesos");
+        System.out.println("  │ ⏸️  Ready Suspended:     " + os.readySuspendedQueueSize() + " procesos (swapped out)");
+        System.out.println("  │ ⏸️  Blocked Suspended:   " + os.blockedSuspendedQueueSize() + " procesos (swapped out)");
+        System.out.println("  │ ✔️  Finished:            " + os.finishedQueueSize() + " procesos");
+        System.out.println("  │ 🖥️  CPU: " + (cpu.isIdle() ? "IDLE" : 
                           "Ejecutando " + cpu.getCurrentProcess().getProcessName()));
+        System.out.println("  └──────────────────────────────────────────────────────┘");
     }
 }
