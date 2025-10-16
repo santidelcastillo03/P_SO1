@@ -7,8 +7,14 @@ package core;
 
 import datastructures.CustomQueue;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import scheduler.Dispatcher;
+import scheduler.PolicyType;
+import scheduler.Scheduler;
+import scheduler.SchedulingPolicy;
 
 /**
  * OperatingSystem coordina las transiciones de estado de los procesos y administra
@@ -21,6 +27,8 @@ public class OperatingSystem {
     private static final Logger LOGGER = Logger.getLogger(OperatingSystem.class.getName());
     /** Capacidad máxima de procesos residentes en memoria principal. */
     private static final int MAX_PROCESSES_IN_MEMORY = 4;
+    /** Duración por defecto de un ciclo del reloj global en milisegundos. */
+    private static final long DEFAULT_CYCLE_DURATION_MILLIS = 100L;
 
     /** Cola de procesos listos. */
     private final CustomQueue<ProcessControlBlock> readyQueue;
@@ -36,6 +44,22 @@ public class OperatingSystem {
     private final Object stateLock;
     /** Contador de procesos residentes actualmente en memoria principal. */
     private int processesInMemory;
+    /** Conteo acumulado de ciclos del reloj global. */
+    private final AtomicLong globalClockCycle;
+    /** Bandera que representa si el reloj global está activo. */
+    private final AtomicBoolean clockRunning;
+    /** Cerradura dedicada al ciclo de reloj para evitar arranques concurrentes. */
+    private final Object clockLock;
+    /** Duración de cada ciclo del reloj en milisegundos. */
+    private volatile long cycleDurationMillis;
+    /** Hilo que ejecuta el ciclo de reloj del sistema. */
+    private Thread clockThread;
+    /** Referencia a la CPU coordinada por el sistema operativo. */
+    private CPU cpu;
+    /** Estrategia de planificación activa. */
+    private Scheduler scheduler;
+    /** Componente despachador responsable de cargar procesos en CPU. */
+    private Dispatcher dispatcher;
 
     /**
      * Construye el sistema operativo con colas vacías y contador en cero.
@@ -48,6 +72,14 @@ public class OperatingSystem {
         this.blockedSuspendedQueue = new CustomQueue<>();
         this.stateLock = new Object();
         this.processesInMemory = 0;
+        this.globalClockCycle = new AtomicLong(0L);
+        this.clockRunning = new AtomicBoolean(false);
+        this.clockLock = new Object();
+        this.cycleDurationMillis = DEFAULT_CYCLE_DURATION_MILLIS;
+        this.clockThread = null;
+        this.cpu = null;
+        this.scheduler = new Scheduler();
+        this.dispatcher = new Dispatcher();
     }
 
     /**
@@ -209,6 +241,260 @@ public class OperatingSystem {
     public int getProcessesInMemory() {
         synchronized (stateLock) {
             return processesInMemory;
+        }
+    }
+
+    /**
+     * Registra la CPU que cooperará con el reloj global del sistema.
+     * @param cpu instancia de CPU asociada
+     */
+    public void attachCpu(CPU cpu) {
+        this.cpu = Objects.requireNonNull(cpu, "La CPU asociada no puede ser nula");
+        this.cpu.setScheduler(scheduler);
+    }
+
+    /**
+     * Sustituye la estrategia de planificación utilizada para elegir el siguiente proceso listo.
+     * @param scheduler planificador que seleccionará procesos
+     */
+    public void setScheduler(Scheduler scheduler) {
+        this.scheduler = Objects.requireNonNull(scheduler, "El planificador no puede ser nulo");
+        if (cpu != null) {
+            cpu.setScheduler(this.scheduler);
+        }
+    }
+
+    /**
+     * Define el despachador responsable de cargar procesos en la CPU.
+     * @param dispatcher componente despachador a utilizar
+     */
+    public void setDispatcher(Dispatcher dispatcher) {
+        this.dispatcher = Objects.requireNonNull(dispatcher, "El despachador no puede ser nulo");
+    }
+
+    /**
+     * Cambia la política de planificación activa inyectando una implementación concreta.
+     * @param policy política que será aplicada desde el siguiente ciclo
+     */
+    public void setSchedulingPolicy(SchedulingPolicy policy) {
+        Objects.requireNonNull(policy, "La política de planificación no puede ser nula");
+        scheduler.setPolicy(policy);
+    }
+
+    /**
+     * Cambia la política activa utilizando uno de los tipos registrados.
+     * @param policyType enumeración de la política deseada
+     */
+    public void setSchedulingPolicy(PolicyType policyType) {
+        Objects.requireNonNull(policyType, "El tipo de política no puede ser nulo");
+        scheduler.setPolicy(policyType);
+    }
+
+    /**
+     * Expone el planificador actual para permitir configuraciones avanzadas.
+     * @return instancia compartida del scheduler
+     */
+    public Scheduler getScheduler() {
+        return scheduler;
+    }
+
+    /**
+     * Ajusta la duración de cada ciclo de reloj para controlar la velocidad de simulación.
+     * @param cycleDurationMillis tiempo en milisegundos por ciclo (no negativo)
+     */
+    public void setCycleDurationMillis(long cycleDurationMillis) {
+        if (cycleDurationMillis < 0L) {
+            throw new IllegalArgumentException("La duración del ciclo no puede ser negativa");
+        }
+        this.cycleDurationMillis = cycleDurationMillis;
+    }
+
+    /**
+     * Obtiene el número acumulado de ciclos globales ejecutados por el reloj.
+     * @return contador de ciclos globales
+     */
+    public long getGlobalClockCycle() {
+        return globalClockCycle.get();
+    }
+
+    /**
+     * Indica si el hilo de reloj del sistema operativo está en ejecución.
+     * @return true cuando el reloj está activo
+     */
+    public boolean isClockRunning() {
+        return clockRunning.get();
+    }
+
+    /**
+     * Inicia el hilo de reloj que coordina planificación, despacho y ejecución en CPU.
+     * Mantiene la secuencia: planificador → despachador → CPU.executeCycle().
+     */
+    public void startSystemClock() {
+        synchronized (clockLock) {
+            if (clockRunning.get()) {
+                return;
+            }
+            if (cpu == null) {
+                throw new IllegalStateException("Se debe registrar una CPU antes de iniciar el reloj del sistema");
+            }
+            clockRunning.set(true);
+            clockThread = new Thread(this::runClockLoop, "SystemClock-Thread");
+            clockThread.setDaemon(true);
+            clockThread.start();
+        }
+    }
+
+    /**
+     * Detiene el hilo de reloj de forma ordenada y espera su terminación.
+     */
+    public void stopSystemClock() {
+        Thread threadToJoin;
+        synchronized (clockLock) {
+            if (!clockRunning.get()) {
+                return;
+            }
+            clockRunning.set(false);
+            threadToJoin = clockThread;
+            if (threadToJoin != null) {
+                threadToJoin.interrupt();
+            }
+        }
+        if (threadToJoin != null) {
+            try {
+                threadToJoin.join(1000L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                LOGGER.log(Level.WARNING, "Interrupción mientras se esperaba el cierre del reloj", ex);
+            }
+        }
+        synchronized (clockLock) {
+            if (clockThread == threadToJoin) {
+                clockThread = null;
+            }
+        }
+    }
+
+    /**
+     * Ejecuta el bucle principal del reloj global incrementando el contador y coordinando las etapas.
+     */
+    private void runClockLoop() {
+        LOGGER.info("Reloj del sistema iniciado");
+        while (clockRunning.get()) {
+            long currentCycle = globalClockCycle.incrementAndGet();
+            LOGGER.info(() -> String.format("Ciclo global #%d", currentCycle));
+            try {
+                executeCyclePipeline();
+            } catch (RuntimeException ex) {
+                LOGGER.log(Level.SEVERE, "Fallo durante la ejecución del ciclo " + currentCycle, ex);
+            }
+
+            if (!clockRunning.get()) {
+                break;
+            }
+
+            try {
+                long sleepTime = cycleDurationMillis;
+                if (sleepTime > 0L) {
+                    Thread.sleep(sleepTime);
+                }
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                LOGGER.info("Reloj del sistema interrumpido - apagado ordenado solicitado");
+                break;
+            }
+        }
+        clockRunning.set(false);
+        LOGGER.info("Reloj del sistema detenido");
+    }
+
+    /**
+     * Ejecuta la secuencia planificador → despachador → CPU para un ciclo del reloj.
+     */
+    private void executeCyclePipeline() {
+        ProcessControlBlock scheduledProcess = runSchedulerStep();
+        runDispatcherStep(scheduledProcess);
+        runCpuStep();
+    }
+
+    /**
+     * Solicita al planificador el siguiente proceso listo para ejecutar.
+     * @return proceso seleccionado o null si no hay candidatos
+     */
+    private ProcessControlBlock runSchedulerStep() {
+        if (cpu == null || !cpu.isIdle()) {
+            return null;
+        }
+        synchronized (stateLock) {
+            if (cpu.getScheduler() != null) {
+                return cpu.selectNextProcess(readyQueue);
+            }
+            if (scheduler != null) {
+                return scheduler.selectNextProcess(readyQueue, cpu.getCurrentProcess());
+            }
+            return readyQueue.dequeue();
+        }
+    }
+
+    /**
+     * Entrega el proceso seleccionado al despachador para su carga en CPU.
+     * @param candidate proceso listo a despachar
+     */
+    private void runDispatcherStep(ProcessControlBlock candidate) {
+        if (candidate == null || cpu == null) {
+            return;
+        }
+        if (!cpu.isIdle()) {
+            moveToReady(candidate);
+            return;
+        }
+        if (dispatcher != null) {
+            dispatcher.dispatch(candidate, cpu);
+        } else {
+            dispatchDefault(candidate);
+        }
+    }
+
+    /**
+     * Ejecuta el ciclo de CPU y comprueba si el proceso actual ha finalizado.
+     */
+    private void runCpuStep() {
+        if (cpu == null) {
+            return;
+        }
+        cpu.executeCycle();
+        finalizeProcessIfCompleted();
+    }
+
+    /**
+     * Carga el proceso en la CPU usando el comportamiento por defecto cuando no hay despachador externo.
+     * @param candidate proceso a cargar en CPU
+     */
+    private void dispatchDefault(ProcessControlBlock candidate) {
+        if (candidate == null || cpu == null || !cpu.isIdle()) {
+            return;
+        }
+        cpu.loadProcess(candidate);
+    }
+
+    /**
+     * Verifica si el proceso actual ya completó todas sus instrucciones y lo marca como terminado.
+     */
+    private void finalizeProcessIfCompleted() {
+        if (cpu == null) {
+            return;
+        }
+        ProcessControlBlock runningProcess = cpu.getCurrentProcess();
+        if (runningProcess == null) {
+            return;
+        }
+        int totalInstructions = runningProcess.getTotalInstructions();
+        if (runningProcess.getProgramCounter() >= totalInstructions) {
+            markAsFinished(runningProcess);
+            cpu.releaseProcess();
+            LOGGER.info(() -> String.format("Proceso %s (#%d) completó su ejecución en el ciclo #%d",
+                    runningProcess.getProcessName(),
+                    runningProcess.getProcessId(),
+                    globalClockCycle.get()));
         }
     }
 

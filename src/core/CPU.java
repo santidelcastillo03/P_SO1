@@ -5,8 +5,11 @@
 
 package core;
 
+import datastructures.CustomQueue;
 import java.util.Objects;
 import java.util.logging.Logger;
+import scheduler.Scheduler;
+import scheduler.SchedulingPolicy;
 import util.IOHandler;
 
 /**
@@ -26,6 +29,8 @@ public class CPU {
     private final IOHandler ioHandler;
     /** Proceso actualmente asignado a la CPU (puede ser null si está ociosa). */
     private ProcessControlBlock currentProcess;
+    /** Planificador responsable de escoger el siguiente proceso listo. */
+    private Scheduler scheduler;
 
     /**
      * Crea una CPU asociada al sistema operativo y al manejador de I/O.
@@ -35,6 +40,34 @@ public class CPU {
     public CPU(OperatingSystem operatingSystem, IOHandler ioHandler) {
         this.operatingSystem = Objects.requireNonNull(operatingSystem, "El sistema operativo es obligatorio");
         this.ioHandler = Objects.requireNonNull(ioHandler, "El manejador de I/O es obligatorio");
+        this.scheduler = null;
+    }
+
+    /**
+     * Permite inyectar el planificador que utilizará la CPU para decidir qué proceso ejecutar.
+     * @param scheduler instancia configurada del planificador
+     */
+    public void setScheduler(Scheduler scheduler) {
+        this.scheduler = Objects.requireNonNull(scheduler, "El planificador no puede ser nulo");
+    }
+
+    /**
+     * Devuelve el planificador actualmente asociado a la CPU.
+     * @return instancia del planificador activo o null si no fue asignado
+     */
+    public Scheduler getScheduler() {
+        return scheduler;
+    }
+
+    /**
+     * Permite cambiar la política activa del planificador en tiempo de ejecución.
+     * @param policy política a utilizar desde este momento
+     */
+    public void setSchedulingPolicy(SchedulingPolicy policy) {
+        if (scheduler == null) {
+            throw new IllegalStateException("No es posible definir una política sin un Scheduler asociado");
+        }
+        scheduler.setPolicy(policy);
     }
 
     /**
@@ -64,6 +97,18 @@ public class CPU {
      */
     public boolean isIdle() {
         return currentProcess == null;
+    }
+
+    /**
+     * Solicita al planificador el siguiente proceso listo utilizando la cola proporcionada.
+     * @param readyQueue cola de listos administrada por el sistema operativo
+     * @return proceso elegido por la política o null si no hay candidatos
+     */
+    public ProcessControlBlock selectNextProcess(CustomQueue<ProcessControlBlock> readyQueue) {
+        if (scheduler == null) {
+            return readyQueue != null ? readyQueue.dequeue() : null;
+        }
+        return scheduler.selectNextProcess(readyQueue, currentProcess);
     }
 
     /**
