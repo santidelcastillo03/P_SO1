@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import scheduler.Dispatcher;
 import scheduler.PolicyType;
+import scheduler.RoundRobin;
 import scheduler.Scheduler;
 import scheduler.SchedulingPolicy;
 
@@ -60,6 +61,8 @@ public class OperatingSystem {
     private Scheduler scheduler;
     /** Componente despachador responsable de cargar procesos en CPU. */
     private Dispatcher dispatcher;
+    /** Quantum utilizado cuando Round Robin es la política activa. */
+    private int roundRobinQuantum;
 
     /**
      * Construye el sistema operativo con colas vacías y contador en cero.
@@ -80,6 +83,7 @@ public class OperatingSystem {
         this.cpu = null;
         this.scheduler = new Scheduler();
         this.dispatcher = new Dispatcher();
+        this.roundRobinQuantum = RoundRobin.DEFAULT_QUANTUM;
     }
 
     /**
@@ -251,6 +255,7 @@ public class OperatingSystem {
     public void attachCpu(CPU cpu) {
         this.cpu = Objects.requireNonNull(cpu, "La CPU asociada no puede ser nula");
         this.cpu.setScheduler(scheduler);
+        this.cpu.setTimeQuantum(roundRobinQuantum);
     }
 
     /**
@@ -261,6 +266,7 @@ public class OperatingSystem {
         this.scheduler = Objects.requireNonNull(scheduler, "El planificador no puede ser nulo");
         if (cpu != null) {
             cpu.setScheduler(this.scheduler);
+            cpu.setTimeQuantum(roundRobinQuantum);
         }
     }
 
@@ -279,6 +285,9 @@ public class OperatingSystem {
     public void setSchedulingPolicy(SchedulingPolicy policy) {
         Objects.requireNonNull(policy, "La política de planificación no puede ser nula");
         scheduler.setPolicy(policy);
+        if (cpu != null && policy instanceof RoundRobin) {
+            cpu.setTimeQuantum(roundRobinQuantum);
+        }
     }
 
     /**
@@ -288,6 +297,9 @@ public class OperatingSystem {
     public void setSchedulingPolicy(PolicyType policyType) {
         Objects.requireNonNull(policyType, "El tipo de política no puede ser nulo");
         scheduler.setPolicy(policyType);
+        if (cpu != null && policyType == PolicyType.ROUND_ROBIN) {
+            cpu.setTimeQuantum(roundRobinQuantum);
+        }
     }
 
     /**
@@ -296,6 +308,28 @@ public class OperatingSystem {
      */
     public Scheduler getScheduler() {
         return scheduler;
+    }
+
+    /**
+     * Define el quantum que utilizará Round Robin en futuras expropiaciones.
+     * @param quantum cantidad de ciclos a asignar a cada proceso
+     */
+    public void setRoundRobinQuantum(int quantum) {
+        if (!RoundRobin.isSupportedQuantum(quantum)) {
+            throw new IllegalArgumentException("Quantum inválido para Round Robin: " + quantum);
+        }
+        if (cpu != null) {
+            cpu.setTimeQuantum(quantum);
+        }
+        roundRobinQuantum = quantum;
+    }
+
+    /**
+     * Devuelve el quantum actual configurado para Round Robin.
+     * @return quantum en ciclos
+     */
+    public int getRoundRobinQuantum() {
+        return roundRobinQuantum;
     }
 
     /**

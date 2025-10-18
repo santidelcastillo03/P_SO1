@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 
 /**
  * FCFS (First Come, First Served) selecciona procesos en orden de llegada sin expropiación.
- * Presenta efecto convoy: un proceso largo puede retrasar significativamente a procesos cortos.
+ * Un proceso largo puede retrasar significativamente a procesos cortos.
  */
 public class FCFS implements SchedulingPolicy {
 

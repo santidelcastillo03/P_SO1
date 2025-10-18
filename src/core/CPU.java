@@ -8,15 +8,14 @@ package core;
 import datastructures.CustomQueue;
 import java.util.Objects;
 import java.util.logging.Logger;
+import scheduler.RoundRobin;
 import scheduler.Scheduler;
 import scheduler.SchedulingPolicy;
 import util.IOHandler;
 
 /**
  * CPU simula la ejecución de instrucciones para el proceso actualmente cargado y coordina sus transiciones de estado.
- * <p>
  * Se encarga de avanzar los registros de contexto, detectar eventos de I/O y delegar los cambios de estado al sistema operativo y al manejador de I/O.
- * </p>
  */
 public class CPU {
 
@@ -31,6 +30,10 @@ public class CPU {
     private ProcessControlBlock currentProcess;
     /** Planificador responsable de escoger el siguiente proceso listo. */
     private Scheduler scheduler;
+    /** Ciclos ejecutados por el proceso actual desde su última carga (para RR). */
+    private int cyclesExecutedByCurrentProcess;
+    /** Quantum configurado para Round Robin (en ciclos). */
+    private int timeQuantum;
 
     /**
      * Crea una CPU asociada al sistema operativo y al manejador de I/O.
@@ -41,6 +44,8 @@ public class CPU {
         this.operatingSystem = Objects.requireNonNull(operatingSystem, "El sistema operativo es obligatorio");
         this.ioHandler = Objects.requireNonNull(ioHandler, "El manejador de I/O es obligatorio");
         this.scheduler = null;
+        this.cyclesExecutedByCurrentProcess = 0;
+        this.timeQuantum = 4;
     }
 
     /**
@@ -71,12 +76,32 @@ public class CPU {
     }
 
     /**
+     * Configura el quantum utilizado por la política Round Robin.
+     * @param quantum cantidad de ciclos que puede ejecutar un proceso antes de ser expropiado
+     */
+    public void setTimeQuantum(int quantum) {
+        if (!RoundRobin.isSupportedQuantum(quantum)) {
+            throw new IllegalArgumentException("Quantum inválido para Round Robin: " + quantum);
+        }
+        this.timeQuantum = quantum;
+    }
+
+    /**
+     * Devuelve el quantum actualmente configurado para Round Robin.
+     * @return cantidad de ciclos permitidos por proceso
+     */
+    public int getTimeQuantum() {
+        return timeQuantum;
+    }
+
+    /**
      * Carga el proceso proporcionado en la CPU y lo marca como en ejecución.
      * @param pcb proceso que la CPU debe ejecutar
      */
     public void loadProcess(ProcessControlBlock pcb) {
         Objects.requireNonNull(pcb, "El proceso a cargar no puede ser nulo");
         this.currentProcess = pcb;
+        this.cyclesExecutedByCurrentProcess = 0;
         pcb.setProcessState(ProcessState.EJECUCION);
         LOGGER.info(() -> String.format("Proceso %s (#%d) cargado en CPU",
                 pcb.getProcessName(),
@@ -123,9 +148,19 @@ public class CPU {
         int nextProgramCounter = currentProcess.getProgramCounter() + 1;
         currentProcess.setProgramCounter(nextProgramCounter);
         currentProcess.setMemoryAddressRegister(currentProcess.getMemoryAddressRegister() + 1);
+        cyclesExecutedByCurrentProcess++;
 
         // Verifica si debe ocurrir un evento de I/O
         triggerIoIfNeeded(nextProgramCounter);
+
+        // Si el proceso fue expropiado o bloqueado, no evaluar quantum
+        if (currentProcess == null) {
+            cyclesExecutedByCurrentProcess = 0;
+            return;
+        }
+
+        // Evalúa expropiación por quantum únicamente cuando Round Robin está activo
+        handleQuantumExpiration();
     }
 
     /**
@@ -138,6 +173,7 @@ public class CPU {
                     currentProcess.getProcessName(),
                     currentProcess.getProcessId()));
             currentProcess = null;
+            cyclesExecutedByCurrentProcess = 0;
         }
     }
 
@@ -155,9 +191,42 @@ public class CPU {
             operatingSystem.moveToBlocked(processToBlock);
             ioHandler.enqueueProcess(processToBlock);
             currentProcess = null;
+            cyclesExecutedByCurrentProcess = 0;
             LOGGER.info(() -> String.format("Proceso %s (#%d) movido a BLOQUEADO por evento de I/O",
                     processToBlock.getProcessName(),
                     processToBlock.getProcessId()));
         }
+    }
+
+    /**
+     * Gestiona la posible expropiación del proceso en ejecución cuando se agota el quantum.
+     */
+    private void handleQuantumExpiration() {
+        if (!isRoundRobinActive()) {
+            return;
+        }
+        int totalInstructions = currentProcess.getTotalInstructions();
+        if (totalInstructions > 0 && currentProcess.getProgramCounter() >= totalInstructions) {
+            return;
+        }
+        if (cyclesExecutedByCurrentProcess < timeQuantum) {
+            return;
+        }
+        ProcessControlBlock processToRequeue = currentProcess;
+        operatingSystem.moveToReady(processToRequeue);
+        currentProcess = null;
+        LOGGER.info(() -> String.format("Proceso %s (#%d) expropiado tras alcanzar quantum RR=%d",
+                processToRequeue.getProcessName(),
+                processToRequeue.getProcessId(),
+                timeQuantum));
+        cyclesExecutedByCurrentProcess = 0;
+    }
+
+    /**
+     * Determina si la política activa corresponde a Round Robin.
+     * @return true cuando RR está configurado en el scheduler
+     */
+    private boolean isRoundRobinActive() {
+        return scheduler != null && scheduler.getActivePolicy() instanceof RoundRobin;
     }
 }
