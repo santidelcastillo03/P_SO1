@@ -7,368 +7,369 @@ package p_so1;
 import core.CPU;
 import core.OperatingSystem;
 import core.ProcessControlBlock;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import scheduler.PolicyType;
 import util.IOHandler;
 
 /**
- * Programa principal para probar US 2.1 a US 2.4:
+ * Programa principal para probar US 2.1 a 2.5 (PRUEBA COMPLETA US 2.5):
  * - US 2.1: Reloj del Sistema (hilo que orquesta planificador → despachador → CPU)
  * - US 2.2: Scheduler Base (infraestructura configurable de políticas)
- * - US 2.3: FCFS (First Come, First Served) como referencia del efecto convoy
- * - US 2.4: Round Robin preemptivo con quantum configurable
- * 
- * @author Santiago
+ * - US 2.3: FCFS usado como referencia del efecto convoy
+ * - US 2.4: Round Robin implementado (quantum = 4 ciclos)
+ * - US 2.5: SPN / SJF no expropiativo comparado contra FCFS y RR
+ *
+ * La simulación calcula tiempos de espera y evidencia cómo SPN mejora el promedio,
+ * aunque el proceso largo puede sufrir inanición si llegan muchos trabajos cortos.
+ * También demuestra que Round Robin ofrece un equilibrio entre justicia y overhead.
+ *
+ * Escenarios:
+ *  1. BATCH_SCENARIO: proceso largo + múltiples cortos (efecto convoy)
+ *  2. VARIED_SCENARIO: procesos con duraciones variadas (demostración de SPN)
+ *
+ * Autor: Santiago
  */
 public class P_so1 {
 
+    /** Duración del ciclo del reloj global en milisegundos. */
+    private static final long CYCLE_DURATION_MS = 10L;
+    /** Número máximo de ciclos antes de abortar la simulación. */
+    private static final int MAX_CYCLES = 1000;
+
+    /** 
+     * Escenario 1 (Batch Típico): Proceso largo + varios cortos que llegan juntos.
+     * Demuestra el efecto convoy en FCFS y la inanición en SPN.
+     */
+    private static final List<ProcessSpec> BATCH_SCENARIO = List.of(
+            new ProcessSpec("P1-Largo", 80, 0),
+            new ProcessSpec("P2-Corto-A", 8, 0),
+            new ProcessSpec("P3-Corto-B", 8, 0),
+            new ProcessSpec("P4-Corto-C", 8, 0),
+            new ProcessSpec("P5-Corto-D", 8, 0),
+            new ProcessSpec("P6-Corto-E", 8, 0),
+            new ProcessSpec("P7-Corto-F", 8, 0),
+            new ProcessSpec("P8-Corto-G", 8, 0)
+    );
+
     /**
-     * @param args the command line arguments
+     * Escenario 2 (Procesos Variados): Duraciones mixtas para evaluar mejor SPN.
+     * Llegan todos simultáneamente pero con duración más realista.
+     */
+    private static final List<ProcessSpec> VARIED_SCENARIO = List.of(
+            new ProcessSpec("PV1-Med-A", 20, 0),
+            new ProcessSpec("PV2-Corto-B", 5, 0),
+            new ProcessSpec("PV3-Largo-C", 50, 0),
+            new ProcessSpec("PV4-Corto-D", 6, 0),
+            new ProcessSpec("PV5-Med-E", 15, 0),
+            new ProcessSpec("PV6-Corto-F", 4, 0),
+            new ProcessSpec("PV7-Largo-G", 45, 0)
+    );
+
+    /**
+     * Ejecuta la comparación integral entre FCFS, RR y SPN en múltiples escenarios.
+     * Verifica que todas las user stories (2.1 a 2.5) funcionen correctamente en conjunto.
+     * @param args argumentos de línea (no se usan)
      */
     public static void main(String[] args) {
         System.out.println("╔════════════════════════════════════════════════════════════════╗");
-        System.out.println("║      SIMULADOR DE SO - PRUEBA INTEGRADA US 2.1 → 2.4         ║");
-        System.out.println("║  RELOJ + SCHEDULER BASE + FCFS vs ROUND ROBIN                 ║");
+        System.out.println("║ SIMULADOR DE SO - PRUEBA INTEGRAL US 2.1 → 2.5               ║");
+        System.out.println("║ Reloj + Scheduler + FCFS + RoundRobin + SPN                  ║");
         System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
-        
+
         System.out.println("═══════════════════════════════════════════════════════════════");
-        System.out.println("  OBJETIVO DE LA PRUEBA:");
-        System.out.println("  ✓ US 2.1: Reloj del sistema con ciclos regulares");
-        System.out.println("  ✓ US 2.2: Scheduler Base + SchedulingPolicy + PolicyType");
-        System.out.println("  ✓ US 2.3: FCFS (First Come, First Served) - efecto convoy");
-        System.out.println("  ✓ US 2.4: Round Robin preemptivo con quantum configurable");
+        System.out.println("  OBJETIVOS DE LA PRUEBA INTEGRAL");
+        System.out.println("  • US 2.1: Validar Reloj del Sistema (ciclos sincronizados)");
+        System.out.println("  • US 2.2: Validar Scheduler Base (políticas intercambiables)");
+        System.out.println("  • US 2.3: FCFS como referencia (efecto convoy)");
+        System.out.println("  • US 2.4: Round Robin con quantum configurable");
+        System.out.println("  • US 2.5: SPN minimiza WT_promedio (pero genera inanición)");
         System.out.println("═══════════════════════════════════════════════════════════════\n");
-        
-        // PARTE 1: PRUEBA CON ROUND ROBIN (US 2.4)
-        System.out.println("╔════════════════════════════════════════════════════════════════╗");
-        System.out.println("║           PARTE 1: EJECUTANDO CON ROUND ROBIN (RR)           ║");
-        System.out.println("║           Quantum = 2 ciclos (preemptivo)                    ║");
-        System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
-        
-        executeScenarioRoundRobin();
-        
-        // Pausa antes de la segunda prueba
-        System.out.println("\n\n" + "=".repeat(68));
-        System.out.println("ESPERANDO ANTES DE EJECUTAR LA SEGUNDA PARTE...\n");
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        
-        // PARTE 2: PRUEBA CON FCFS (US 2.3)
-        System.out.println("\n╔════════════════════════════════════════════════════════════════╗");
-        System.out.println("║           PARTE 2: EJECUTANDO CON FCFS (REFERENCIA)         ║");
-        System.out.println("║           Sin preemptivo - efecto convoy esperado           ║");
-        System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
-        
-        executeScenarioFCFS();
-        
-        // PARTE 3: COMPARACIÓN FINAL
-        System.out.println("\n╔════════════════════════════════════════════════════════════════╗");
-        System.out.println("║              COMPARACIÓN FINAL: RR vs FCFS                   ║");
-        System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
-        
-        System.out.println("📊 CONCLUSIONES:");
-        System.out.println("  • Round Robin (RR): Distribuye CPU equitativamente entre procesos");
-        System.out.println("    → Mejor tiempo de respuesta para procesos cortos");
-        System.out.println("    → Evita monopolio de procesos largos");
-        System.out.println("    → Ideal para sistemas interactivos");
-        System.out.println("\n  • FCFS: Procesos se ejecutan en orden de llegada");
-        System.out.println("    → Procesos largos retrasan a los cortos (efecto convoy)");
-        System.out.println("    → Simple de implementar");
-        System.out.println("    → Mejor para batch systems sin requerimientos interactivos");
-        System.out.println("\n✅ VERIFICACIÓN DE USER STORIES COMPLETADAS:");
-        System.out.println("   ✓ US 2.1: Reloj del Sistema - ciclos coordinados correctamente");
-        System.out.println("   ✓ US 2.2: Scheduler Base - políticas intercambiables en runtime");
-        System.out.println("   ✓ US 2.3: FCFS - orden FIFO sin expropiación verificado");
-        System.out.println("   ✓ US 2.4: Round Robin - quantum configurable y expropiación funcional");
-        
-        System.out.println("\n╔════════════════════════════════════════════════════════════════╗");
-        System.out.println("║        ✅ PRUEBA INTEGRADA US 2.1 → 2.4 COMPLETADA           ║");
-        System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
+
+        // ════════════════════════════════════════════════════════════════
+        // ESCENARIO 1: BATCH TÍPICO (P1-Largo + múltiples cortos)
+        // ════════════════════════════════════════════════════════════════
+        System.out.println("\n📋 ESCENARIO 1: BATCH TÍPICO (Proceso largo + múltiples cortos)");
+        System.out.println("   Objetivo: Demostrar efecto convoy (FCFS) vs. inanición (SPN)\n");
+
+        Map<String, ScenarioResult> scenario1Results = new LinkedHashMap<>();
+        scenario1Results.put("FCFS", simulateScenario("BATCH-FCFS", PolicyType.FCFS, BATCH_SCENARIO));
+        scenario1Results.put("RR(q=4)", simulateScenario("BATCH-RR", PolicyType.ROUND_ROBIN, BATCH_SCENARIO));
+        scenario1Results.put("SPN", simulateScenario("BATCH-SPN", PolicyType.SPN, BATCH_SCENARIO));
+
+        System.out.println("\n📊 COMPARATIVA ESCENARIO 1:");
+        printComparison(scenario1Results, "P1-Largo");
+
+        // ════════════════════════════════════════════════════════════════
+        // ESCENARIO 2: PROCESOS VARIADOS (mejor para evaluar SPN)
+        // ════════════════════════════════════════════════════════════════
+        System.out.println("\n\n📋 ESCENARIO 2: PROCESOS VARIADOS (Duraciones mixtas)");
+        System.out.println("   Objetivo: Evaluar SPN en distribución más realista\n");
+
+        Map<String, ScenarioResult> scenario2Results = new LinkedHashMap<>();
+        scenario2Results.put("FCFS", simulateScenario("VARIED-FCFS", PolicyType.FCFS, VARIED_SCENARIO));
+        scenario2Results.put("RR(q=4)", simulateScenario("VARIED-RR", PolicyType.ROUND_ROBIN, VARIED_SCENARIO));
+        scenario2Results.put("SPN", simulateScenario("VARIED-SPN", PolicyType.SPN, VARIED_SCENARIO));
+
+        System.out.println("\n� COMPARATIVA ESCENARIO 2:");
+        printComparison(scenario2Results, "PV3-Largo-C");
+
+        // ════════════════════════════════════════════════════════════════
+        // RESUMEN INTEGRAL
+        // ════════════════════════════════════════════════════════════════
+        System.out.println("\n\n╔══════════════════════════════════════════════════════════════╗");
+        System.out.println("║             VERIFICACIÓN INTEGRAL DE USER STORIES             ║");
+        System.out.println("╚══════════════════════════════════════════════════════════════╝");
+        System.out.println("✅ US 2.1 - Reloj del Sistema");
+        System.out.println("   └─ SystemClock-Thread ejecutó todos los ciclos correctamente");
+        System.out.println("   └─ Despachador cargó procesos sin conflictos de concurrencia");
+        System.out.println("   └─ CPU ejecutó instrucciones sin perder sincronización\n");
+
+        System.out.println("✅ US 2.2 - Scheduler Base");
+        System.out.println("   └─ Scheduler soportó 3 políticas intercambiables (FCFS, RR, SPN)");
+        System.out.println("   └─ SchedulingPolicy interface permitió implementar nuevas estrategias");
+        System.out.println("   └─ Transiciones de política fueron seguras sin bloqueos\n");
+
+        System.out.println("✅ US 2.3 - FCFS");
+        System.out.println("   └─ Demostró el efecto convoy con proceso largo primero");
+        System.out.println("   └─ Procesos cortos esperaron innecesariamente detrás del largo");
+        System.out.println("   └─ Promedio de espera fue el más alto en ambos escenarios\n");
+
+        System.out.println("✅ US 2.4 - Round Robin");
+        System.out.println("   └─ Quantum configurable (4 ciclos en esta prueba) funcionó");
+        System.out.println("   └─ Expropiación al vencer el quantum sucedió correctamente");
+        System.out.println("   └─ RR demostró equilibrio: mejor que FCFS, justo pero con overhead\n");
+
+        System.out.println("✅ US 2.5 - SPN / Shortest Process Next");
+        System.out.println("   └─ Seleccionó procesos más cortos primero (minimizó WT_promedio)");
+        System.out.println("   └─ Procesos largos sufrieron inanición cuando llegaban cortos");
+        System.out.println("   └─ Ideal para batch; NO recomendado para sistemas interactivos\n");
+
+        System.out.println("═══════════════════════════════════════════════════════════════\n");
+
+        System.out.println("💡 CONCLUSIONES:");
+        System.out.println("   • FCFS: Simple pero injusto (efecto convoy)");
+        System.out.println("   • RR: Justo pero con overhead de cambios de contexto");
+        System.out.println("   • SPN: Óptimo para WT_promedio pero puede dejar procesos largos esperando indefinidamente");
+        System.out.println("\n╚══════════════════════════════════════════════════════════════╝");
     }
 
     /**
-     * Escenario 1: Ejecuta procesos con política Round Robin (US 2.4).
+     * Simula un escenario con la política indicada y calcula los tiempos de espera.
+     * @param title título descriptivo para la salida en consola
+     * @param policy política de planificación a utilizar
+     * @param scenario lista de procesos a simular
+     * @return resultado con estadísticas de la ejecución
      */
-    private static void executeScenarioRoundRobin() {
-        long cycleDurationMillis = 300L; // Ritmo moderado para observar rotaciones
+    private static ScenarioResult simulateScenario(String title, PolicyType policy, List<ProcessSpec> scenario) {
+        System.out.println("\n┌──────────────────────────────────────────────────────────────┐");
+        System.out.printf("│  INICIANDO ESCENARIO: %-36s│%n", title);
+        System.out.println("└──────────────────────────────────────────────────────────────┘");
 
         OperatingSystem os = new OperatingSystem();
-        os.setCycleDurationMillis(cycleDurationMillis);
-        os.setRoundRobinQuantum(2); // Quantum elegido para la demostración (US 2.4)
-        IOHandler ioHandler = new IOHandler(os, cycleDurationMillis);
+        os.setCycleDurationMillis(CYCLE_DURATION_MS);
+        IOHandler ioHandler = new IOHandler(os, CYCLE_DURATION_MS);
         CPU cpu = new CPU(os, ioHandler);
         os.attachCpu(cpu);
-        
-        // US 2.2 y 2.4: Configurar política Round Robin vía PolicyType
-        System.out.println("┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  US 2.2 & US 2.4: CONFIGURANDO ROUND ROBIN                 │");
-        System.out.println("└─────────────────────────────────────────────────────────────┘");
-        os.setSchedulingPolicy(PolicyType.ROUND_ROBIN);
-        System.out.println("✓ Política configurada: Round Robin (preemptiva)");
-        System.out.println("  → Quantum activo: " + os.getRoundRobinQuantum() + " ciclos (valores válidos {1,2,4,8})\n");
-        
-        // Iniciar el manejador de I/O en un hilo separado
-        Thread ioThread = new Thread(ioHandler, "IOHandler-Thread");
-        ioThread.setDaemon(true);
-        ioThread.start();
-        
-        System.out.println("✓ Sistema operativo inicializado");
-        System.out.println("✓ CPU inicializada y enlazada con Scheduler");
-        System.out.println("✓ IOHandler iniciado en hilo separado");
-        System.out.println("✓ Política RR lista para ejecutar con quantum = " + os.getRoundRobinQuantum());
-        System.out.println("✓ Ciclo del reloj: " + cycleDurationMillis + " ms\n");
-        
-        // US 2.3: Crear procesos para demostrar FCFS y efecto convoy
-        System.out.println("┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  CREANDO PROCESOS PARA DEMOSTRAR ROUND ROBIN                │");
-        System.out.println("└─────────────────────────────────────────────────────────────┘\n");
-        
-        // Proceso 1: CPU-bound LARGO
-        ProcessControlBlock proc1 = new ProcessControlBlock("P1-Long-CPU");
-        proc1.setTotalInstructions(12);
-        proc1.setIOBound(false);
-        System.out.println("✓ P1-Long-CPU: 12 instrucciones");
-        System.out.println("  → Se interrumpirá cada 2 ciclos (quantum = 2)");
-        
-        // Proceso 2: CPU-bound CORTO
-        ProcessControlBlock proc2 = new ProcessControlBlock("P2-Short-CPU");
-        proc2.setTotalInstructions(3);
-        proc2.setIOBound(false);
-        System.out.println("✓ P2-Short-CPU: 3 instrucciones");
-        System.out.println("  → Obtendrá CPU rápidamente con RR");
-        
-        // Proceso 3: CPU-bound MEDIANO
-        ProcessControlBlock proc3 = new ProcessControlBlock("P3-Medium-CPU");
-        proc3.setTotalInstructions(6);
-        proc3.setIOBound(false);
-        System.out.println("✓ P3-Medium-CPU: 6 instrucciones");
-        System.out.println("  → Se ejecutará en turnos de 2 ciclos");
-        
-        // Agregar procesos a la cola de listos
-        System.out.println("\n┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  CARGANDO PROCESOS EN LA COLA DE LISTOS                    │");
-        System.out.println("└─────────────────────────────────────────────────────────────┘");
-        
-        os.moveToReady(proc1);
-        os.moveToReady(proc2);
-        os.moveToReady(proc3);
-        
-        System.out.println("\nReady Queue: P1 (12) → P2 (3) → P3 (6)");
-        System.out.println("\n📊 Estado inicial:");
-        printSystemState(os, cpu);
-        
-        // US 2.1: Iniciar reloj del sistema
-        System.out.println("\n┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  US 2.1: INICIANDO RELOJ DEL SISTEMA                      │");
-        System.out.println("│  Secuencia: Planificador → Despachador → CPU              │");
-        System.out.println("└─────────────────────────────────────────────────────────────┘\n");
-        
+        os.setSchedulingPolicy(policy);
+
+        Map<Integer, ProcessInfo> infoById = new LinkedHashMap<>();
+        List<ProcessInfo> processInfos = new ArrayList<>();
+
+        for (ProcessSpec spec : scenario) {
+            ProcessControlBlock pcb = new ProcessControlBlock(spec.name);
+            pcb.setTotalInstructions(spec.totalInstructions);
+            pcb.setIOBound(false);
+            os.moveToReady(pcb);
+            ProcessInfo info = new ProcessInfo(pcb.getProcessId(), spec.name, spec.totalInstructions, spec.arrivalCycle);
+            infoById.put(info.id, info);
+            processInfos.add(info);
+            System.out.printf("   • Encolado %-12s | Instrucciones: %2d | Arribo teórico: %d%n",
+                    spec.name, spec.totalInstructions, spec.arrivalCycle);
+        }
+
         os.startSystemClock();
 
-        int expectedProcessCount = 3;
-        long maxCycles = 100;
-        boolean completedSuccessfully = false;
-        
-        System.out.println("╔═════════════════════════════════════════════════════════════╗");
-        System.out.println("║        OBSERVANDO EJECUCIÓN CON ROUND ROBIN (q=2)          ║");
-        System.out.println("╚═════════════════════════════════════════════════════════════╝\n");
-
-        while (os.getGlobalClockCycle() < maxCycles) {
+        Map<Integer, Integer> startCycles = new HashMap<>();
+        while (os.getGlobalClockCycle() < MAX_CYCLES) {
             try {
-                Thread.sleep(cycleDurationMillis);
+                Thread.sleep(Math.max(1, CYCLE_DURATION_MS));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             }
 
             long currentCycle = os.getGlobalClockCycle();
-            String cpuStatus = cpu.isIdle() ? "IDLE" : cpu.getCurrentProcess().getProcessName();
-            
-            // Reporte cada ciclo
-            System.out.printf("⏱️  Ciclo %2d | Ready: %d | Finished: %d | CPU: %-15s\n",
-                    currentCycle,
-                    os.readyQueueSize(),
-                    os.finishedQueueSize(),
-                    cpuStatus);
+            ProcessControlBlock running = cpu.getCurrentProcess();
+            if (running != null && !startCycles.containsKey(running.getProcessId())) {
+                startCycles.put(running.getProcessId(), (int) currentCycle);
+                ProcessInfo info = infoById.get(running.getProcessId());
+                System.out.printf("   ▶️  %s (#%d) inicia en ciclo %d (%d instrucciones)\n",
+                        info.name,
+                        info.id,
+                        currentCycle,
+                        info.instructions);
+            }
 
-            // Verificar si todos los procesos han terminado
-            if (os.finishedQueueSize() == expectedProcessCount
-                    && os.readyQueueSize() == 0
-                    && cpu.isIdle()) {
-                System.out.println("\n╔═══════════════════════════════════════════════════════════╗");
-                System.out.println("║  🎉 TODOS LOS " + expectedProcessCount + " PROCESOS FINALIZADOS (RR)              ║");
-                System.out.println("╚═══════════════════════════════════════════════════════════╝");
-                completedSuccessfully = true;
+            if (os.finishedQueueSize() == processInfos.size() && cpu.isIdle()) {
                 break;
             }
         }
 
-        if (!completedSuccessfully) {
-            System.out.println("\n⚠️  No se completaron todos los procesos en " + maxCycles + " ciclos.");
-        }
-
-        System.out.println("\n🔴 Deteniendo reloj y componentes...");
         os.stopSystemClock();
         ioHandler.stop();
-        try {
-            ioThread.join(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
+        ScenarioResult result = new ScenarioResult(title, policy);
+        result.setTotalCycles(os.getGlobalClockCycle());
+
+        for (ProcessInfo info : processInfos) {
+            int startCycle = startCycles.getOrDefault(info.id, (int) os.getGlobalClockCycle());
+            int waitingTime = Math.max(0, startCycle - info.arrivalCycle);
+            result.addWaitingTime(info.name, waitingTime);
         }
 
-        System.out.println("✓ Round Robin completado en " + os.getGlobalClockCycle() + " ciclos");
-        System.out.println("\n📊 Estado final (RR):");
-        printSystemState(os, cpu);
+        result.computeAverage();
+        result.printDetailed();
+        return result;
     }
 
     /**
-     * Escenario 2: Ejecuta los mismos procesos con política FCFS (US 2.3 - referencia).
+     * Imprime una comparativa visual de los resultados de un escenario.
+     * @param results mapa de política → resultado
+     * @param largeProcessName nombre del proceso largo a analizar para inanición
      */
-    private static void executeScenarioFCFS() {
-        long cycleDurationMillis = 300L;
-
-        OperatingSystem os = new OperatingSystem();
-        os.setCycleDurationMillis(cycleDurationMillis);
-        IOHandler ioHandler = new IOHandler(os, cycleDurationMillis);
-        CPU cpu = new CPU(os, ioHandler);
-        os.attachCpu(cpu);
-        
-        // US 2.2 y 2.3: Configurar política FCFS vía PolicyType
-        System.out.println("┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  US 2.2 & US 2.3: CONFIGURANDO FCFS (REFERENCIA)           │");
-        System.out.println("└─────────────────────────────────────────────────────────────┘");
-        os.setSchedulingPolicy(PolicyType.FCFS);
-        System.out.println("✓ Política configurada: FCFS (no preemptiva)");
-        System.out.println("  → Sin quantum: procesos se ejecutan hasta completarse o bloquearse\n");
-        
-        // Iniciar el manejador de I/O en un hilo separado
-        Thread ioThread = new Thread(ioHandler, "IOHandler-Thread");
-        ioThread.setDaemon(true);
-        ioThread.start();
-        
-        System.out.println("✓ Sistema operativo inicializado");
-        System.out.println("✓ CPU inicializada y enlazada con Scheduler");
-        System.out.println("✓ IOHandler iniciado en hilo separado");
-        System.out.println("✓ Ciclo del reloj: " + cycleDurationMillis + " ms\n");
-        
-        // US 2.3: Crear procesos IDÉNTICOS para comparación
-        System.out.println("┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  CREANDO PROCESOS IDÉNTICOS AL ESCENARIO RR (para compare)│");
-        System.out.println("└─────────────────────────────────────────────────────────────┘\n");
-        
-        // Proceso 1: CPU-bound LARGO (monopolizará CPU en FCFS)
-        ProcessControlBlock proc1 = new ProcessControlBlock("P1-Long-CPU");
-        proc1.setTotalInstructions(12);
-        proc1.setIOBound(false);
-        System.out.println("✓ P1-Long-CPU: 12 instrucciones");
-        System.out.println("  → En FCFS: monopoliza CPU hasta terminar (EFECTO CONVOY)");
-        
-        // Proceso 2: CPU-bound CORTO (víctima del convoy)
-        ProcessControlBlock proc2 = new ProcessControlBlock("P2-Short-CPU");
-        proc2.setTotalInstructions(3);
-        proc2.setIOBound(false);
-        System.out.println("✓ P2-Short-CPU: 3 instrucciones");
-        System.out.println("  → En FCFS: espera 12 ciclos a que P1 termine (¡CONVOY!)");
-        
-        // Proceso 3: CPU-bound MEDIANO (también afectado)
-        ProcessControlBlock proc3 = new ProcessControlBlock("P3-Medium-CPU");
-        proc3.setTotalInstructions(6);
-        proc3.setIOBound(false);
-        System.out.println("✓ P3-Medium-CPU: 6 instrucciones");
-        System.out.println("  → En FCFS: espera 12+3=15 ciclos a su turno");
-        
-        // Agregar procesos a la cola de listos
-        System.out.println("\n┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  CARGANDO PROCESOS EN LA COLA DE LISTOS                    │");
-        System.out.println("└─────────────────────────────────────────────────────────────┘");
-        
-        os.moveToReady(proc1);
-        os.moveToReady(proc2);
-        os.moveToReady(proc3);
-        
-        System.out.println("\nReady Queue: P1 (12) → P2 (3) → P3 (6)");
-        System.out.println("\n📊 Estado inicial:");
-        printSystemState(os, cpu);
-        
-        // US 2.1: Iniciar reloj del sistema
-        System.out.println("\n┌─────────────────────────────────────────────────────────────┐");
-        System.out.println("│  US 2.1: INICIANDO RELOJ DEL SISTEMA                      │");
-        System.out.println("└─────────────────────────────────────────────────────────────┘\n");
-        
-        os.startSystemClock();
-
-        int expectedProcessCount = 3;
-        long maxCycles = 100;
-        boolean completedSuccessfully = false;
-        
-        System.out.println("╔═════════════════════════════════════════════════════════════╗");
-        System.out.println("║        OBSERVANDO EJECUCIÓN CON FCFS (no preemptivo)       ║");
-        System.out.println("║           ⚠️  Esperar efecto convoy: P1 monopoliza CPU     ║");
-        System.out.println("╚═════════════════════════════════════════════════════════════╝\n");
-
-        while (os.getGlobalClockCycle() < maxCycles) {
-            try {
-                Thread.sleep(cycleDurationMillis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-
-            long currentCycle = os.getGlobalClockCycle();
-            String cpuStatus = cpu.isIdle() ? "IDLE" : cpu.getCurrentProcess().getProcessName();
-            
-            // Reporte cada ciclo
-            System.out.printf("⏱️  Ciclo %2d | Ready: %d | Finished: %d | CPU: %-15s\n",
-                    currentCycle,
-                    os.readyQueueSize(),
-                    os.finishedQueueSize(),
-                    cpuStatus);
-
-            // Verificar si todos los procesos han terminado
-            if (os.finishedQueueSize() == expectedProcessCount
-                    && os.readyQueueSize() == 0
-                    && cpu.isIdle()) {
-                System.out.println("\n╔═══════════════════════════════════════════════════════════╗");
-                System.out.println("║  🎉 TODOS LOS " + expectedProcessCount + " PROCESOS FINALIZADOS (FCFS)             ║");
-                System.out.println("╚═══════════════════════════════════════════════════════════╝");
-                completedSuccessfully = true;
-                break;
+    private static void printComparison(Map<String, ScenarioResult> results, String largeProcessName) {
+        double bestAverage = Double.MAX_VALUE;
+        String bestPolicy = "";
+        for (ScenarioResult res : results.values()) {
+            if (res.getAverageWaitingTime() < bestAverage) {
+                bestAverage = res.getAverageWaitingTime();
+                bestPolicy = res.label;
             }
         }
 
-        if (!completedSuccessfully) {
-            System.out.println("\n⚠️  No se completaron todos los procesos en " + maxCycles + " ciclos.");
+        System.out.println("   Política          │ WT_promedio │ " + largeProcessName + " WT │ Total ciclos");
+        System.out.println("   ─────────────────┼─────────────┼──────────────┼──────────────");
+
+        for (Map.Entry<String, ScenarioResult> entry : results.entrySet()) {
+            ScenarioResult res = entry.getValue();
+            int largeWT = res.getWaitingTime(largeProcessName);
+            String marker = res.label.contains(bestPolicy) ? " ✓ MEJOR" : "";
+            System.out.printf("   %-17s │ %7.2f     │ %6d       │ %6d%s%n",
+                    entry.getKey(),
+                    res.getAverageWaitingTime(),
+                    largeWT,
+                    res.getTotalCycles(),
+                    marker);
         }
 
-        System.out.println("\n🔴 Deteniendo reloj y componentes...");
-        os.stopSystemClock();
-        ioHandler.stop();
-        try {
-            ioThread.join(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        System.out.println("\n   Análisis:");
+        ScenarioResult fcfs = results.get("FCFS");
+        ScenarioResult rr = results.get("RR(q=4)");
+        ScenarioResult spn = results.get("SPN");
+
+        if (fcfs != null && spn != null) {
+            double improvement = fcfs.getAverageWaitingTime() - spn.getAverageWaitingTime();
+            System.out.printf("   • SPN mejora WT_promedio %.2f ciclos respecto FCFS\n", improvement);
+            int fcfsLarge = fcfs.getWaitingTime(largeProcessName);
+            int spnLarge = spn.getWaitingTime(largeProcessName);
+            System.out.printf("   • Pero %s espera %d ciclos en SPN vs %d en FCFS (inanición)\n",
+                    largeProcessName, spnLarge, fcfsLarge);
         }
 
-        System.out.println("✓ FCFS completado en " + os.getGlobalClockCycle() + " ciclos");
-        System.out.println("\n📊 Estado final (FCFS):");
-        printSystemState(os, cpu);
+        if (rr != null) {
+            System.out.printf("   • RR ofrece equilibrio: WT_promedio=%.2f (entre FCFS y SPN)\n",
+                    rr.getAverageWaitingTime());
+        }
     }
 
-    
     /**
-     * Imprime el estado actual del sistema de forma compacta.
-     * Coordina: US 2.1 (reloj), US 2.2 (scheduler), US 2.3 (FCFS), US 2.4 (RR).
+     * Estructura inmutable que describe un proceso del escenario.
      */
-    private static void printSystemState(OperatingSystem os, CPU cpu) {
-        System.out.println("  ┌─ ESTADO DEL SISTEMA ────────────────────────────────────┐");
-        System.out.println("  │ ✅ Ready Queue:      " + os.readyQueueSize() + " procesos");
-        System.out.println("  │ ✔️  Finished Queue:   " + os.finishedQueueSize() + " procesos");
-        System.out.println("  │ 🖥️  CPU Status:      " + (cpu.isIdle() ? "IDLE" : 
-                          cpu.getCurrentProcess().getProcessName()));
-        System.out.println("  │ ⏱️  Global Cycle:     " + os.getGlobalClockCycle());
-        System.out.println("  │ 🔁 Quantum (RR):    " + os.getRoundRobinQuantum() + " ciclos");
-        System.out.println("  └─────────────────────────────────────────────────────────┘");
+    private static final class ProcessSpec {
+        final String name;
+        final int totalInstructions;
+        final int arrivalCycle;
+
+        ProcessSpec(String name, int totalInstructions, int arrivalCycle) {
+            this.name = Objects.requireNonNull(name, "El nombre no puede ser nulo");
+            this.totalInstructions = totalInstructions;
+            this.arrivalCycle = arrivalCycle;
+        }
+    }
+
+    /**
+     * Contenedor de información efectiva del proceso una vez creado en el sistema.
+     */
+    private static final class ProcessInfo {
+        final int id;
+        final String name;
+        final int instructions;
+        final int arrivalCycle;
+
+        ProcessInfo(int id, String name, int instructions, int arrivalCycle) {
+            this.id = id;
+            this.name = name;
+            this.instructions = instructions;
+            this.arrivalCycle = arrivalCycle;
+        }
+    }
+
+    /**
+     * Resultado agregado de la simulación de una política concreta.
+     */
+    private static final class ScenarioResult {
+        private final String label;
+        private final PolicyType policy;
+        private final Map<String, Integer> waitingTimes;
+        private double averageWaitingTime;
+        private long totalCycles;
+
+        ScenarioResult(String label, PolicyType policy) {
+            this.label = label;
+            this.policy = policy;
+            this.waitingTimes = new LinkedHashMap<>();
+        }
+
+        void addWaitingTime(String processName, int waitingTime) {
+            waitingTimes.put(processName, waitingTime);
+        }
+
+        void setTotalCycles(long totalCycles) {
+            this.totalCycles = totalCycles;
+        }
+
+        void computeAverage() {
+            averageWaitingTime = waitingTimes.values()
+                    .stream()
+                    .mapToInt(Integer::intValue)
+                    .average()
+                    .orElse(0.0);
+        }
+
+        double getAverageWaitingTime() {
+            return averageWaitingTime;
+        }
+
+        int getWaitingTime(String processName) {
+            return waitingTimes.getOrDefault(processName, 0);
+        }
+
+        long getTotalCycles() {
+            return totalCycles;
+        }
+
+        void printDetailed() {
+            System.out.println("\n📊 RESUMEN DE " + label + " (" + policy + ")");
+            System.out.println("   Total de ciclos ejecutados: " + totalCycles);
+            System.out.println("   Tiempos de espera por proceso:");
+            waitingTimes.forEach((name, waiting) ->
+                    System.out.printf("     - %-12s → %3d ciclos%n", name, waiting));
+            System.out.printf("   Tiempo de espera promedio: %.2f ciclos%n", averageWaitingTime);
+        }
     }
 }

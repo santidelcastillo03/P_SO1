@@ -120,4 +120,19 @@ public class CustomQueue<T> {
     private boolean isEmptyInternal() {
         return size == 0;
     }
+
+    /**
+     * Obtiene una copia ordenada de los elementos almacenados en la cola sin usar colecciones externas.
+     * @return arreglo con la instantánea de los elementos en orden FIFO
+     */
+    public synchronized Object[] getAllProcesses() {
+        Object[] snapshot = new Object[size];
+        Node<T> current = head;
+        int index = 0;
+        while (current != null) {
+            snapshot[index++] = current.getValue();
+            current = current.getNext();
+        }
+        return snapshot;
+    }
 }

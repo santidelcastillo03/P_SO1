@@ -522,7 +522,7 @@ public class OperatingSystem {
             return;
         }
         int totalInstructions = runningProcess.getTotalInstructions();
-        if (runningProcess.getProgramCounter() >= totalInstructions) {
+        if (runningProcess.getProgramCounter() > totalInstructions) {
             markAsFinished(runningProcess);
             cpu.releaseProcess();
             LOGGER.info(() -> String.format("Proceso %s (#%d) completó su ejecución en el ciclo #%d",

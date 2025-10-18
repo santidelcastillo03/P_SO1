@@ -110,7 +110,7 @@ public class Scheduler {
     private void registerDefaultPolicies() {
         registerPolicy(PolicyType.FCFS, activePolicy);
         registerPolicy(PolicyType.ROUND_ROBIN, new RoundRobin());
-        registerPolicy(PolicyType.SPN, new SJF());
+        registerPolicy(PolicyType.SPN, new SPN());
         registerPolicy(PolicyType.SRT, new SRTF());
         registerPolicy(PolicyType.HRRN, new PriorityNP());
         registerPolicy(PolicyType.FEEDBACK, new PriorityP());
