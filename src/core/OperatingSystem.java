@@ -189,6 +189,32 @@ public class OperatingSystem {
     }
 
     /**
+     * Devuelve una instantánea de la cola de listos para análisis externos (SRTF).
+     * @return arreglo con los procesos actualmente listos
+     */
+    public ProcessControlBlock[] getReadyQueueSnapshot() {
+        synchronized (stateLock) {
+            Object[] raw = readyQueue.getAllProcesses();
+            ProcessControlBlock[] snapshot = new ProcessControlBlock[raw.length];
+            for (int i = 0; i < raw.length; i++) {
+                snapshot[i] = (ProcessControlBlock) raw[i];
+            }
+            return snapshot;
+        }
+    }
+
+    /**
+     * Elimina un proceso específico de la cola de listos.
+     * @param pcb proceso a remover
+     * @return true si se eliminó correctamente
+     */
+    public boolean removeFromReadyQueue(ProcessControlBlock pcb) {
+        synchronized (stateLock) {
+            return readyQueue.remove(pcb);
+        }
+    }
+
+    /**
      * Número de procesos listos actualmente en memoria.
      * @return tamaño de la cola ready
      */

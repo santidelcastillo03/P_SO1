@@ -9,6 +9,7 @@ import datastructures.CustomQueue;
 import java.util.Objects;
 import java.util.logging.Logger;
 import scheduler.RoundRobin;
+import scheduler.SRTF;
 import scheduler.Scheduler;
 import scheduler.SchedulingPolicy;
 import util.IOHandler;
@@ -161,6 +162,8 @@ public class CPU {
 
         // Evalúa expropiación por quantum únicamente cuando Round Robin está activo
         handleQuantumExpiration();
+        // Evalúa posible expropiación por SRTF si llega un proceso con menor tiempo restante
+        handleShortestRemainingPreemption();
     }
 
     /**
@@ -228,5 +231,94 @@ public class CPU {
      */
     private boolean isRoundRobinActive() {
         return scheduler != null && scheduler.getActivePolicy() instanceof RoundRobin;
+    }
+
+    /**
+     * Gestiona la expropiación cuando hay un proceso con menor tiempo restante (SRTF).
+     */
+    private void handleShortestRemainingPreemption() {
+        if (!isSrtActive() || currentProcess == null) {
+            return;
+        }
+
+        ProcessControlBlock[] snapshot = operatingSystem.getReadyQueueSnapshot();
+        if (snapshot == null || snapshot.length == 0) {
+            return;
+        }
+
+        ProcessControlBlock shortest = null;
+        for (int i = 0; i < snapshot.length; i++) {
+            ProcessControlBlock candidate = snapshot[i];
+            if (candidate == null) {
+                continue;
+            }
+            if (shortest == null || compareRemainingTime(candidate, shortest) < 0) {
+                shortest = candidate;
+            }
+        }
+
+        if (shortest == null) {
+            return;
+        }
+
+        int currentRemaining = remainingTime(currentProcess);
+        int candidateRemaining = remainingTime(shortest);
+        if (candidateRemaining >= currentRemaining) {
+            return;
+        }
+
+        if (!operatingSystem.removeFromReadyQueue(shortest)) {
+            return;
+        }
+
+        ProcessControlBlock preempted = currentProcess;
+        ProcessControlBlock selectedProcess = shortest;
+        final int finalCandidateRemaining = candidateRemaining;
+        currentProcess = null;
+        cyclesExecutedByCurrentProcess = 0;
+        LOGGER.info(() -> String.format("Proceso %s (#%d) expropiado por SRTF; nuevo proceso %s (#%d) restante=%d",
+                preempted.getProcessName(),
+                preempted.getProcessId(),
+                selectedProcess.getProcessName(),
+                selectedProcess.getProcessId(),
+                finalCandidateRemaining));
+
+        operatingSystem.moveToReady(preempted);
+        loadProcess(selectedProcess);
+    }
+
+    /**
+     * Determina si la política activa corresponde a Shortest Remaining Time First.
+     * @return true cuando SRTF está habilitado
+     */
+    private boolean isSrtActive() {
+        return scheduler != null && scheduler.getActivePolicy() instanceof SRTF;
+    }
+
+    /**
+     * Compara el tiempo restante de dos procesos.
+     * @param candidate proceso candidato
+     * @param current proceso actualmente considerado más corto
+     * @return valor negativo si candidate tiene menor restante
+     */
+    private int compareRemainingTime(ProcessControlBlock candidate, ProcessControlBlock current) {
+        int diff = remainingTime(candidate) - remainingTime(current);
+        if (diff != 0) {
+            return diff;
+        }
+        return candidate.getProcessId() - current.getProcessId();
+    }
+
+    /**
+     * Calcula el tiempo restante de ejecución para el proceso indicado.
+     * @param pcb proceso a evaluar
+     * @return cantidad de instrucciones pendientes por ejecutar
+     */
+    private int remainingTime(ProcessControlBlock pcb) {
+        if (pcb == null) {
+            return Integer.MAX_VALUE;
+        }
+        int remaining = pcb.getTotalInstructions() - pcb.getProgramCounter();
+        return remaining < 0 ? 0 : remaining;
     }
 }

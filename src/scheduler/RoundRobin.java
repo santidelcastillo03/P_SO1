@@ -16,7 +16,7 @@ public class RoundRobin implements SchedulingPolicy {
     /** Quantum por defecto recomendado para RR (en ciclos). */
     public static final int DEFAULT_QUANTUM = 4;
     /** Valores admitidos de quantum para la política Round Robin. */
-    public static final int[] SUPPORTED_QUANTA = {1, 2, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+    public static final int[] SUPPORTED_QUANTA = {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
 
     /**
      * Verifica si el quantum proporcionado pertenece al conjunto soportado.
