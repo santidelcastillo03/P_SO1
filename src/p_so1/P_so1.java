@@ -98,6 +98,13 @@ public class P_so1 {
         new ProcessSpec("RR-Refuerzo", 8, 2, false, -1, 0)
     };
 
+    /** Escenario optimizado para Feedback: procesos descienden de nivel al agotar su quantum. */
+    private static final ProcessSpec[] SCENARIO_FEEDBACK = new ProcessSpec[] {
+        new ProcessSpec("FB-Largo", 12, 0, false, -1, 0),
+        new ProcessSpec("FB-Corto-A", 4, 0, false, -1, 0),
+        new ProcessSpec("FB-Medio", 6, 1, false, -1, 0)
+    };
+
     /**
      * Punto de entrada principal con menú interactivo.
      * @param args argumentos de línea de comandos (no utilizados)
@@ -130,6 +137,9 @@ public class P_so1 {
                     ejecutarEscenario("Round Robin (Quantum=3)", PolicyType.ROUND_ROBIN, SCENARIO_RR);
                     break;
                 case 6:
+                    ejecutarEscenario("Feedback (Multilevel Queues)", PolicyType.FEEDBACK, SCENARIO_FEEDBACK);
+                    break;
+                case 7:
                     continuar = false;
                     imprimirConColor(COLOR_SUMMARY, "¡Hasta luego!");
                     break;
@@ -137,7 +147,7 @@ public class P_so1 {
                     imprimirConColor(COLOR_ERROR, "❌ Opción no válida. Intente nuevamente.\n");
             }
 
-            if (continuar && opcion >= 1 && opcion <= 5) {
+            if (continuar && opcion >= 1 && opcion <= 6) {
                 imprimirConColor(COLOR_QUEUE, "\nPresione Enter para volver al menú...");
                 scanner.nextLine();
             }
@@ -208,8 +218,10 @@ public class P_so1 {
         System.out.println("   → Expropia cuando llega un proceso con tiempo restante menor");
         System.out.println("5. Round Robin - Expropiación por Quantum");
         System.out.println("   → Turnos equitativos con quantum configurable");
-        System.out.println("6. Salir");
-        System.out.print("\nSeleccione una opción (1-6): ");
+        System.out.println("6. Feedback (Multilevel Queues)");
+        System.out.println("   → Degrada procesos según comportamiento y quantum");
+        System.out.println("7. Salir");
+        System.out.print("\nSeleccione una opción (1-7): ");
     }
 
     /**
@@ -338,17 +350,8 @@ public class P_so1 {
                 break;
             }
 
-            ProcessControlBlock enEjecucion = cpu.getCurrentProcess();
-            if (enEjecucion != null) {
-                int indice = buscarIndicePorId(processIds, enEjecucion.getProcessId());
-                if (indice >= 0 && infos[indice].cicloInicio < 0) {
-                    infos[indice].cicloInicio = (int) cicloActual;
-                    String mensaje = String.format("▶️  %s INICIA EJECUCIÓN en ciclo %d",
-                            infos[indice].nombre,
-                            cicloActual);
-                    imprimirConColor(COLOR_PROCESS, mensaje);
-                }
-            }
+            // Nota: cicloInicio ahora se registra automáticamente en CPU.loadProcess()
+            // cuando el proceso ejecuta por primera vez.
 
             if (todosTerminados(os, cpu, encolados)) {
                 break;
@@ -469,6 +472,7 @@ public class P_so1 {
         os.moveToReady(pcb);
         processIds[indice] = pcb.getProcessId();
         info.id = pcb.getProcessId();
+        info.pcb = pcb;  // ⭐ Guardar referencia al PCB
         encolados[indice] = true;
         String llegada = String.format("📥 PROCESO LLEGA: %s (PID=%d, %d instrucciones)",
                 info.nombre,
@@ -552,6 +556,11 @@ public class P_so1 {
                 System.out.println("   • Ventaja: Equidad y respuesta predecible");
                 System.out.println("   • Desventaja: Overhead de cambio de contexto");
                 break;
+            case FEEDBACK:
+                System.out.println("   • Feedback utiliza múltiples colas con quantums crecientes");
+                System.out.println("   • Ventaja: Favorece procesos cortos sin abandonar los largos");
+                System.out.println("   • Desventaja: Configuración más compleja y degradación frecuente");
+                break;
         }
         System.out.printf("   • Tiempo de espera promedio: %.2f ciclos%n", resultado.obtenerPromedioEspera());
     }
@@ -595,6 +604,7 @@ public class P_so1 {
         final int duracionIO;
         int cicloInicio;
         int tiempoEspera;
+        ProcessControlBlock pcb;  // ⭐ Referencia al PCB actual
 
         /**
          * Construye el contenedor de métricas dinámicas de un proceso durante el escenario.
@@ -615,6 +625,7 @@ public class P_so1 {
             this.id = -1;
             this.cicloInicio = -1;
             this.tiempoEspera = 0;
+            this.pcb = null;  // ⭐ Se asignará cuando se cree el PCB
         }
     }
 
@@ -655,7 +666,10 @@ public class P_so1 {
             double acumulado = 0.0;
             for (int i = 0; i < infos.length; i++) {
                 ProcessInfo info = infos[i];
-                if (info.cicloInicio < 0) {
+                // ⭐ Usar firstExecutionCycle del PCB en lugar de registro manual
+                if (info.pcb != null && info.pcb.getFirstExecutionCycle() >= 0) {
+                    info.cicloInicio = (int) info.pcb.getFirstExecutionCycle();
+                } else if (info.cicloInicio < 0) {
                     info.cicloInicio = (int) totalCiclos;
                 }
                 info.tiempoEspera = info.cicloInicio - info.arribo;

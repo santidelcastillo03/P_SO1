@@ -8,6 +8,7 @@ package core;
 import datastructures.CustomQueue;
 import java.util.Objects;
 import java.util.logging.Logger;
+import scheduler.Feedback;
 import scheduler.RoundRobin;
 import scheduler.SRTF;
 import scheduler.Scheduler;
@@ -35,6 +36,8 @@ public class CPU {
     private int cyclesExecutedByCurrentProcess;
     /** Quantum configurado para Round Robin (en ciclos). */
     private int timeQuantum;
+    /** Quantums base para la política Feedback. */
+    private static final int[] FEEDBACK_QUANTA = {1, 2, 3, 4, Integer.MAX_VALUE};
 
     /**
      * Crea una CPU asociada al sistema operativo y al manejador de I/O.
@@ -105,6 +108,8 @@ public class CPU {
         this.cyclesExecutedByCurrentProcess = 0;
         pcb.clearReadyQueueArrival();
         pcb.setProcessState(ProcessState.EJECUCION);
+        // ⭐ Registrar ciclo de primer inicio si aún no se ha marcado
+        pcb.markFirstExecution(operatingSystem.getGlobalClockCycle());
         LOGGER.info(() -> String.format("Proceso %s (#%d) cargado en CPU",
                 pcb.getProcessName(),
                 pcb.getProcessId()));
@@ -166,6 +171,8 @@ public class CPU {
         handleQuantumExpiration();
         // Evalúa posible expropiación por SRTF si llega un proceso con menor tiempo restante
         handleShortestRemainingPreemption();
+        // Evalúa descenso de nivel en política Feedback cuando se agota el quantum del nivel actual
+        handleFeedbackQuantumExpiration();
     }
 
     /**
@@ -322,5 +329,41 @@ public class CPU {
         }
         int remaining = pcb.getTotalInstructions() - pcb.getProgramCounter();
         return remaining < 0 ? 0 : remaining;
+    }
+
+    /**
+     * Maneja la degradación de nivel en la política Feedback cuando se alcanza el quantum asignado.
+     */
+    private void handleFeedbackQuantumExpiration() {
+        if (!isFeedbackActive() || currentProcess == null) {
+            return;
+        }
+        int level = currentProcess.getPriorityLevel();
+        int levelQuantum = FEEDBACK_QUANTA[level];
+        if (levelQuantum == Integer.MAX_VALUE) {
+            return;
+        }
+        if (cyclesExecutedByCurrentProcess < levelQuantum) {
+            return;
+        }
+        ProcessControlBlock processToRequeue = currentProcess;
+        int nextLevel = Math.min(level + 1, FEEDBACK_QUANTA.length - 1);
+        processToRequeue.setPriorityLevel(nextLevel);
+        currentProcess = null;
+        cyclesExecutedByCurrentProcess = 0;
+        operatingSystem.moveToReady(processToRequeue);
+        LOGGER.info(() -> String.format("Feedback degrada %s (#%d) al nivel %d tras agotar quantum=%d",
+                processToRequeue.getProcessName(),
+                processToRequeue.getProcessId(),
+                nextLevel,
+                levelQuantum));
+    }
+
+    /**
+     * Determina si la política activa corresponde a Feedback multnivel.
+     * @return true cuando Feedback está habilitado
+     */
+    private boolean isFeedbackActive() {
+        return scheduler != null && scheduler.getActivePolicy() instanceof Feedback;
     }
 }

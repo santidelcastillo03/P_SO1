@@ -57,6 +57,10 @@ public class ProcessControlBlock {
 	private long completionTime;
 	/** Ciclo en el que el proceso ingresó a la cola de listos. */
 	private long readyQueueArrivalTime;
+	/** Ciclo en el que el proceso ejecuta por PRIMERA vez en CPU. */
+	private long firstExecutionCycle;
+	/** Nivel de prioridad usado por políticas Feedback (0=alta … 3=baja). */
+	private int priorityLevel;
 
 
 	/**
@@ -90,6 +94,8 @@ public class ProcessControlBlock {
 		this.creationTime = System.currentTimeMillis();
 		this.completionTime = -1L;
 		this.readyQueueArrivalTime = -1L;
+		this.firstExecutionCycle = -1L;
+		this.priorityLevel = 0;
 	}
 
 
@@ -150,6 +156,46 @@ public class ProcessControlBlock {
 	 */
 	public void clearReadyQueueArrival() {
 		readyQueueArrivalTime = -1L;
+	}
+
+	/**
+	 * Registra el ciclo en el que el proceso ejecuta por PRIMERA vez.
+	 * @param cycle número de ciclo global cuando se carga en CPU por primera vez
+	 */
+	public void markFirstExecution(long cycle) {
+		if (firstExecutionCycle < 0) {
+			firstExecutionCycle = Math.max(0L, cycle);
+		}
+	}
+
+	/**
+	 * Devuelve el ciclo en el que el proceso ejecutó por primera vez.
+	 * @return ciclo registrado o -1 si no ha ejecutado aún
+	 */
+	public long getFirstExecutionCycle() {
+		return firstExecutionCycle;
+	}
+
+	/**
+	 * Cambia el nivel de prioridad actual del proceso para políticas con múltiples colas.
+	 * @param level nivel entre 0 y 3
+	 */
+	public void setPriorityLevel(int level) {
+		if (level < 0) {
+			priorityLevel = 0;
+		} else if (level > 3) {
+			priorityLevel = 3;
+		} else {
+			priorityLevel = level;
+		}
+	}
+
+	/**
+	 * Devuelve el nivel de prioridad asignado al proceso.
+	 * @return nivel de prioridad actual (0-3)
+	 */
+	public int getPriorityLevel() {
+		return priorityLevel;
 	}
 
 	/**

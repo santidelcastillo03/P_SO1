@@ -114,6 +114,6 @@ public class Scheduler {
         registerPolicy(PolicyType.SPN, new SPN());
         registerPolicy(PolicyType.SRT, new SRTF());
         registerPolicy(PolicyType.HRRN, new HRRN());
-        registerPolicy(PolicyType.FEEDBACK, new PriorityP());
+        registerPolicy(PolicyType.FEEDBACK, new Feedback());
     }
 }
