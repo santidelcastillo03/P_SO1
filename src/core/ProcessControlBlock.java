@@ -55,6 +55,8 @@ public class ProcessControlBlock {
 	private long creationTime;
 	/** Timestamp de finalización del proceso. */
 	private long completionTime;
+	/** Ciclo en el que el proceso ingresó a la cola de listos. */
+	private long readyQueueArrivalTime;
 
 
 	/**
@@ -87,6 +89,7 @@ public class ProcessControlBlock {
 		this.ioDuration = 0;
 		this.creationTime = System.currentTimeMillis();
 		this.completionTime = -1L;
+		this.readyQueueArrivalTime = -1L;
 	}
 
 
@@ -132,6 +135,29 @@ public class ProcessControlBlock {
 	 */
 	public void setProcessState(ProcessState processState) {
 		this.processState = Objects.requireNonNull(processState, "El estado del proceso no puede ser nulo");
+	}
+
+	/**
+	 * Registra el ciclo en el que el proceso entró a la cola de listos.
+	 * @param cycle número de ciclo global
+	 */
+	public void markReadyQueueArrival(long cycle) {
+		readyQueueArrivalTime = Math.max(0L, cycle);
+	}
+
+	/**
+	 * Limpia la marca de llegada a ready (cuando sale de la cola).
+	 */
+	public void clearReadyQueueArrival() {
+		readyQueueArrivalTime = -1L;
+	}
+
+	/**
+	 * Devuelve el ciclo en el que el proceso entró a ready.
+	 * @return ciclo registrado o -1 si no está marcado
+	 */
+	public long getReadyQueueArrivalTime() {
+		return readyQueueArrivalTime;
 	}
 
 
@@ -190,6 +216,32 @@ public class ProcessControlBlock {
 	public void setTotalInstructions(int totalInstructions) {
 		if (totalInstructions < 0) throw new IllegalArgumentException("totalInstructions no puede ser negativo");
 		this.totalInstructions = totalInstructions;
+	}
+
+	/**
+	 * Calcula el tiempo de espera acumulado usando el ciclo global actual.
+	 * @param currentCycle ciclo global del sistema
+	 * @return tiempo de espera en ciclos
+	 */
+	public long getWaitingTime(long currentCycle) {
+		if (readyQueueArrivalTime < 0) {
+			return 0L;
+		}
+		long waiting = currentCycle - readyQueueArrivalTime;
+		return waiting < 0 ? 0L : waiting;
+	}
+
+	/**
+	 * Calcula el índice de respuesta (HRRN) con base en el tiempo de espera y duración total.
+	 * @param currentCycle ciclo global del sistema
+	 * @return ratio de respuesta (>=1)
+	 */
+	public double getResponseRatio(long currentCycle) {
+		long waiting = getWaitingTime(currentCycle);
+		if (totalInstructions <= 0) {
+			return 1.0 + waiting;
+		}
+		return 1.0 + (waiting / (double) totalInstructions);
 	}
 
 

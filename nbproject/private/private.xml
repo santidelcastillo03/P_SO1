@@ -5,7 +5,6 @@
         <group>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/IOHandler.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/CPU.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/p_so1/P_so1.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/OperatingSystem.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/ProcessControlBlock.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/ProcessState.java</file>
@@ -33,6 +32,7 @@
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/ConfigManager.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/MetricsCalculator.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/ProcessData.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/HRRN.java</file>
         </group>
     </open-files>
 </project-private>

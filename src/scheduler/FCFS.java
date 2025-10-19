@@ -25,7 +25,8 @@ public class FCFS implements SchedulingPolicy {
      */
     @Override
     public ProcessControlBlock selectNextProcess(CustomQueue<ProcessControlBlock> readyQueue,
-                                                 ProcessControlBlock currentProcess) {
+                                                 ProcessControlBlock currentProcess,
+                                                 long currentCycle) {
         if (readyQueue == null) {
             return null;
         }

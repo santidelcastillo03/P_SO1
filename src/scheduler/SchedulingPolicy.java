@@ -21,5 +21,6 @@ public interface SchedulingPolicy {
      * @return proceso a ejecutar en el siguiente ciclo o null si no hay candidatos
      */
     ProcessControlBlock selectNextProcess(CustomQueue<ProcessControlBlock> readyQueue,
-                                          ProcessControlBlock currentProcess);
+                                          ProcessControlBlock currentProcess,
+                                          long currentCycle);
 }

@@ -69,6 +69,15 @@ public class P_so1 {
         new ProcessSpec("SPN-Largo", 18, 3, false, -1, 0)
     };
 
+    /** Escenario optimizado para HRRN: procesos cortos llegan tras esperas prolongadas. */
+    private static final ProcessSpec[] SCENARIO_HRRN = new ProcessSpec[] {
+        new ProcessSpec("HRRN-Largo", 28, 0, false, -1, 0),
+        new ProcessSpec("HRRN-Medio", 12, 1, false, -1, 0),
+        new ProcessSpec("HRRN-Corto-A", 5, 6, false, -1, 0),
+        new ProcessSpec("HRRN-Corto-B", 4, 10, false, -1, 0),
+        new ProcessSpec("HRRN-Corto-C", 3, 14, false, -1, 0)
+    };
+
     /** Escenario optimizado para SRTF: demuestra expropiaciones por tiempo restante. */
     private static final ProcessSpec[] SCENARIO_SRTF = new ProcessSpec[] {
         new ProcessSpec("SRTF-Largo", 30, 0, false, -1, 0),
@@ -112,12 +121,15 @@ public class P_so1 {
                     ejecutarEscenario("SPN (Shortest Process Next)", PolicyType.SPN, SCENARIO_SPN);
                     break;
                 case 3:
-                    ejecutarEscenario("SRTF (Shortest Remaining Time First)", PolicyType.SRT, SCENARIO_SRTF);
+                    ejecutarEscenario("HRRN (Highest Response Ratio Next)", PolicyType.HRRN, SCENARIO_HRRN);
                     break;
                 case 4:
-                    ejecutarEscenario("Round Robin (Quantum=3)", PolicyType.ROUND_ROBIN, SCENARIO_RR);
+                    ejecutarEscenario("SRTF (Shortest Remaining Time First)", PolicyType.SRT, SCENARIO_SRTF);
                     break;
                 case 5:
+                    ejecutarEscenario("Round Robin (Quantum=3)", PolicyType.ROUND_ROBIN, SCENARIO_RR);
+                    break;
+                case 6:
                     continuar = false;
                     imprimirConColor(COLOR_SUMMARY, "¡Hasta luego!");
                     break;
@@ -125,7 +137,7 @@ public class P_so1 {
                     imprimirConColor(COLOR_ERROR, "❌ Opción no válida. Intente nuevamente.\n");
             }
 
-            if (continuar && opcion >= 1 && opcion <= 4) {
+            if (continuar && opcion >= 1 && opcion <= 5) {
                 imprimirConColor(COLOR_QUEUE, "\nPresione Enter para volver al menú...");
                 scanner.nextLine();
             }
@@ -173,7 +185,7 @@ public class P_so1 {
     private static void imprimirBanner() {
         imprimirConColor(COLOR_SUMMARY, "╔════════════════════════════════════════════════════════════════╗");
         imprimirConColor(COLOR_SUMMARY, "║        SIMULADOR INTERACTIVO DE PLANIFICACIÓN DE PROCESOS     ║");
-        imprimirConColor(COLOR_SUMMARY, "║                FCFS • SPN • SRTF • ROUND ROBIN                 ║");
+        imprimirConColor(COLOR_SUMMARY, "║          FCFS • SPN • HRRN • SRTF • ROUND ROBIN               ║");
         imprimirConColor(COLOR_SUMMARY, "╚════════════════════════════════════════════════════════════════╝\n");
         imprimirConColor(COLOR_SUMMARY, "🎯 OBJETIVO: Observar el comportamiento de cada algoritmo en escenarios");
         imprimirConColor(COLOR_SUMMARY, "   optimizados que demuestran sus características principales.\n");
@@ -190,12 +202,14 @@ public class P_so1 {
         System.out.println("   → Efecto convoy: procesos largos bloquean cortos");
         System.out.println("2. SPN - Shortest Process Next");
         System.out.println("   → Selecciona siempre el proceso más corto disponible");
-        System.out.println("3. SRTF - Shortest Remaining Time First");
+        System.out.println("3. HRRN - Highest Response Ratio Next");
+        System.out.println("   → Balancea espera y duración, evita inanición prolongada");
+        System.out.println("4. SRTF - Shortest Remaining Time First");
         System.out.println("   → Expropia cuando llega un proceso con tiempo restante menor");
-        System.out.println("4. Round Robin - Expropiación por Quantum");
+        System.out.println("5. Round Robin - Expropiación por Quantum");
         System.out.println("   → Turnos equitativos con quantum configurable");
-        System.out.println("5. Salir");
-        System.out.print("\nSeleccione una opción (1-5): ");
+        System.out.println("6. Salir");
+        System.out.print("\nSeleccione una opción (1-6): ");
     }
 
     /**
@@ -522,6 +536,11 @@ public class P_so1 {
                 System.out.println("   • SPN selecciona el proceso con menos instrucciones totales");
                 System.out.println("   • Ventaja: Minimiza tiempo de espera promedio");
                 System.out.println("   • Desventaja: Inanición de procesos largos");
+                break;
+            case HRRN:
+                System.out.println("   • HRRN pondera tiempo de espera y duración total");
+                System.out.println("   • Ventaja: Procesos largos incrementan prioridad mientras esperan");
+                System.out.println("   • Desventaja: Requiere cálculo adicional por selección");
                 break;
             case SRT:
                 System.out.println("   • SRTF expropia si llega un proceso con menos tiempo restante");

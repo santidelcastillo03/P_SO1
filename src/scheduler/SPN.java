@@ -26,7 +26,8 @@ public class SPN implements SchedulingPolicy {
      */
     @Override
     public ProcessControlBlock selectNextProcess(CustomQueue<ProcessControlBlock> readyQueue,
-                                                 ProcessControlBlock currentProcess) {
+                                                 ProcessControlBlock currentProcess,
+                                                 long currentCycle) {
         if (readyQueue == null || readyQueue.isEmpty()) {
             return null;
         }

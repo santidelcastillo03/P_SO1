@@ -48,11 +48,12 @@ public class Scheduler {
      * @return próximo proceso a ejecutar o null si la cola está vacía
      */
     public ProcessControlBlock selectNextProcess(CustomQueue<ProcessControlBlock> readyQueue,
-                                                 ProcessControlBlock currentProcess) {
+                                                 ProcessControlBlock currentProcess,
+                                                 long currentCycle) {
         if (activePolicy == null || readyQueue == null) {
             return null;
         }
-        return activePolicy.selectNextProcess(readyQueue, currentProcess);
+        return activePolicy.selectNextProcess(readyQueue, currentProcess, currentCycle);
     }
 
     /**
@@ -112,7 +113,7 @@ public class Scheduler {
         registerPolicy(PolicyType.ROUND_ROBIN, new RoundRobin());
         registerPolicy(PolicyType.SPN, new SPN());
         registerPolicy(PolicyType.SRT, new SRTF());
-        registerPolicy(PolicyType.HRRN, new PriorityNP());
+        registerPolicy(PolicyType.HRRN, new HRRN());
         registerPolicy(PolicyType.FEEDBACK, new PriorityP());
     }
 }

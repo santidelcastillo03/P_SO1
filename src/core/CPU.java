@@ -103,6 +103,7 @@ public class CPU {
         Objects.requireNonNull(pcb, "El proceso a cargar no puede ser nulo");
         this.currentProcess = pcb;
         this.cyclesExecutedByCurrentProcess = 0;
+        pcb.clearReadyQueueArrival();
         pcb.setProcessState(ProcessState.EJECUCION);
         LOGGER.info(() -> String.format("Proceso %s (#%d) cargado en CPU",
                 pcb.getProcessName(),
@@ -134,7 +135,8 @@ public class CPU {
         if (scheduler == null) {
             return readyQueue != null ? readyQueue.dequeue() : null;
         }
-        return scheduler.selectNextProcess(readyQueue, currentProcess);
+        long currentCycle = operatingSystem != null ? operatingSystem.getGlobalClockCycle() : 0L;
+        return scheduler.selectNextProcess(readyQueue, currentProcess, currentCycle);
     }
 
     /**

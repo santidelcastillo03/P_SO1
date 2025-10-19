@@ -485,11 +485,12 @@ public class OperatingSystem {
             return null;
         }
         synchronized (stateLock) {
+            long currentCycle = globalClockCycle.get();
             if (cpu.getScheduler() != null) {
                 return cpu.selectNextProcess(readyQueue);
             }
             if (scheduler != null) {
-                return scheduler.selectNextProcess(readyQueue, cpu.getCurrentProcess());
+                return scheduler.selectNextProcess(readyQueue, cpu.getCurrentProcess(), currentCycle);
             }
             return readyQueue.dequeue();
         }
@@ -575,6 +576,11 @@ public class OperatingSystem {
             ProcessState previousState = pcb.getProcessState();
             adjustMemoryCounters(previousState, targetState);
             pcb.setProcessState(targetState);
+            if (targetState == ProcessState.LISTO) {
+                pcb.markReadyQueueArrival(globalClockCycle.get());
+            } else {
+                pcb.clearReadyQueueArrival();
+            }
             targetQueue.enqueue(pcb);
             logTransition(pcb, previousState, targetState, targetQueueName);
         }
@@ -632,6 +638,7 @@ public class OperatingSystem {
                                   String queueName) {
         ProcessState previousState = candidate.getProcessState();
         candidate.setProcessState(suspendedState);
+        candidate.clearReadyQueueArrival();
         targetQueue.enqueue(candidate);
         processesInMemory = Math.max(0, processesInMemory - 1);
         logTransition(candidate, previousState, suspendedState, queueName);
