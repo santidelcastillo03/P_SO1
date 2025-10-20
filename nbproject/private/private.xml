@@ -16,8 +16,6 @@
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/FCFS.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/FCFSMetrics.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/PolicyType.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/PriorityNP.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/PriorityP.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/RoundRobin.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/SPN.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Scheduler.java</file>
@@ -33,6 +31,8 @@
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/MetricsCalculator.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/ProcessData.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/HRRN.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Feedback.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/p_so1/P_so1.java</file>
         </group>
     </open-files>
 </project-private>

@@ -8,6 +8,7 @@ import core.CPU;
 import core.OperatingSystem;
 import core.ProcessControlBlock;
 import scheduler.PolicyType;
+import ui.MainFrame;
 import util.IOHandler;
 import java.text.MessageFormat;
 import java.util.Scanner;
@@ -48,6 +49,7 @@ public class P_so1 {
     private static final String COLOR_IO = "\u001B[94m";
     /** Color para mensajes de alerta o errores. */
     private static final String COLOR_ERROR = "\u001B[31m";
+    private static volatile MainFrame mainFrame;
 
     /** Escenario optimizado para FCFS: resalta el efecto convoy y suspensiones por memoria. */
     private static final ProcessSpec[] SCENARIO_FCFS = new ProcessSpec[] {
@@ -113,6 +115,13 @@ public class P_so1 {
         configurarSalidaColoreada();
         Scanner scanner = new Scanner(System.in);
         boolean continuar = true;
+
+        // Despliega la interfaz gráfica principal del simulador.
+        java.awt.EventQueue.invokeLater(() -> {
+            MainFrame frame = new MainFrame();
+            mainFrame = frame;
+            frame.setVisible(true);
+        });
 
         imprimirBanner();
 
@@ -275,6 +284,7 @@ public class P_so1 {
      */
     private static ScenarioResult simularEscenario(String titulo, PolicyType politica, ProcessSpec[] scenario) {
         OperatingSystem os = new OperatingSystem();
+        vincularInterfaz(os);
         os.setCycleDurationMillis(CYCLE_DURATION_MS);
         os.setRoundRobinQuantum(ROUND_ROBIN_QUANTUM);
         IOHandler ioHandler = new IOHandler(os, CYCLE_DURATION_MS);
@@ -370,6 +380,13 @@ public class P_so1 {
         resultado.setTotalCiclos(os.getGlobalClockCycle());
         resultado.calcularTiemposDeEspera();
         return resultado;
+    }
+
+    private static void vincularInterfaz(OperatingSystem os) {
+        MainFrame frame = mainFrame;
+        if (frame != null) {
+            frame.bindOperatingSystem(os);
+        }
     }
 
     /**

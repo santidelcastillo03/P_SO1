@@ -6,6 +6,9 @@
 package core;
 
 import datastructures.CustomQueue;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -63,6 +66,8 @@ public class OperatingSystem {
     private Dispatcher dispatcher;
     /** Quantum utilizado cuando Round Robin es la política activa. */
     private int roundRobinQuantum;
+    private transient QueueListener queueListener;
+    private transient CpuListener cpuListener;
 
     /**
      * Construye el sistema operativo con colas vacías y contador en cero.
@@ -93,6 +98,8 @@ public class OperatingSystem {
      */
     public void moveToReady(ProcessControlBlock pcb) {
         updateProcessState(pcb, ProcessState.LISTO, readyQueue, "readyQueue");
+        notifyQueueListener();
+        notifyCpuListener();
     }
 
     /**
@@ -101,6 +108,8 @@ public class OperatingSystem {
      */
     public void moveToBlocked(ProcessControlBlock pcb) {
         updateProcessState(pcb, ProcessState.BLOQUEADO, blockedQueue, "blockedQueue");
+        notifyQueueListener();
+        notifyCpuListener();
     }
 
     /**
@@ -127,6 +136,8 @@ public class OperatingSystem {
                 restoreSuspendedProcessIfPossible();
             }
         }
+        notifyQueueListener();
+        notifyCpuListener();
     }
 
     /**
@@ -146,6 +157,8 @@ public class OperatingSystem {
             }
             updateProcessState(pcb, ProcessState.LISTO, readyQueue, "readyQueue");
         }
+        notifyQueueListener();
+        notifyCpuListener();
     }
 
     /**
@@ -282,6 +295,7 @@ public class OperatingSystem {
         this.cpu = Objects.requireNonNull(cpu, "La CPU asociada no puede ser nula");
         this.cpu.setScheduler(scheduler);
         this.cpu.setTimeQuantum(roundRobinQuantum);
+        notifyCpuListener();
     }
 
     /**
@@ -358,6 +372,41 @@ public class OperatingSystem {
         return roundRobinQuantum;
     }
 
+    public ProcessControlBlock createProcess(String nombre,
+                                             int totalInstrucciones,
+                                             boolean ioBound,
+                                             int ioCycle,
+                                             int ioDuration) {
+        Objects.requireNonNull(nombre, "El nombre del proceso no puede ser nulo");
+        if (nombre.isBlank()) {
+            throw new IllegalArgumentException("El nombre del proceso no puede estar vacío");
+        }
+        if (totalInstrucciones <= 0) {
+            throw new IllegalArgumentException("Las instrucciones deben ser mayores que cero");
+        }
+        ProcessControlBlock pcb = new ProcessControlBlock(nombre.trim());
+        pcb.setTotalInstructions(totalInstrucciones);
+        pcb.setIOBound(ioBound);
+        if (ioBound) {
+            if (ioCycle < 0) {
+                ioCycle = 0;
+            }
+            if (ioCycle >= totalInstrucciones) {
+                ioCycle = Math.max(0, totalInstrucciones - 1);
+            }
+            if (ioDuration <= 0) {
+                ioDuration = 1;
+            }
+            pcb.setIoExceptionCycle(ioCycle);
+            pcb.setIoDuration(ioDuration);
+        } else {
+            pcb.setIoExceptionCycle(-1);
+            pcb.setIoDuration(0);
+        }
+        moveToReady(pcb);
+        return pcb;
+    }
+
     /**
      * Ajusta la duración de cada ciclo de reloj para controlar la velocidad de simulación.
      * @param cycleDurationMillis tiempo en milisegundos por ciclo (no negativo)
@@ -367,6 +416,10 @@ public class OperatingSystem {
             throw new IllegalArgumentException("La duración del ciclo no puede ser negativa");
         }
         this.cycleDurationMillis = cycleDurationMillis;
+    }
+
+    public long getCycleDurationMillis() {
+        return cycleDurationMillis;
     }
 
     /**
@@ -484,16 +537,22 @@ public class OperatingSystem {
         if (cpu == null || !cpu.isIdle()) {
             return null;
         }
+        ProcessControlBlock candidate;
         synchronized (stateLock) {
             long currentCycle = globalClockCycle.get();
             if (cpu.getScheduler() != null) {
-                return cpu.selectNextProcess(readyQueue);
+                candidate = cpu.selectNextProcess(readyQueue);
+            } else if (scheduler != null) {
+                candidate = scheduler.selectNextProcess(readyQueue, cpu.getCurrentProcess(), currentCycle);
+            } else {
+                candidate = readyQueue.dequeue();
             }
-            if (scheduler != null) {
-                return scheduler.selectNextProcess(readyQueue, cpu.getCurrentProcess(), currentCycle);
-            }
-            return readyQueue.dequeue();
         }
+        if (candidate != null) {
+            notifyQueueListener();
+            notifyCpuListener();
+        }
+        return candidate;
     }
 
     /**
@@ -513,6 +572,7 @@ public class OperatingSystem {
         } else {
             dispatchDefault(candidate);
         }
+        notifyCpuListener();
     }
 
     /**
@@ -524,6 +584,7 @@ public class OperatingSystem {
         }
         cpu.executeCycle();
         finalizeProcessIfCompleted();
+        notifyCpuListener();
     }
 
     /**
@@ -688,5 +749,99 @@ public class OperatingSystem {
         return state == ProcessState.LISTO
             || state == ProcessState.BLOQUEADO
             || state == ProcessState.EJECUCION;
+    }
+
+    public void setQueueListener(QueueListener listener) {
+        synchronized (stateLock) {
+            queueListener = listener;
+        }
+        notifyQueueListener();
+    }
+
+    private void notifyQueueListener() {
+        QueueListener listenerSnapshot;
+        List<ProcessControlBlock> readySnapshot;
+        List<ProcessControlBlock> blockedSnapshot;
+        List<ProcessControlBlock> finishedSnapshot;
+        List<ProcessControlBlock> readySuspendedSnapshot;
+        List<ProcessControlBlock> blockedSuspendedSnapshot;
+        synchronized (stateLock) {
+            listenerSnapshot = queueListener;
+            if (listenerSnapshot == null) {
+                return;
+            }
+            readySnapshot = snapshotQueue(readyQueue);
+            blockedSnapshot = snapshotQueue(blockedQueue);
+            finishedSnapshot = snapshotQueue(finishedProcessesList);
+            readySuspendedSnapshot = snapshotQueue(readySuspendedQueue);
+            blockedSuspendedSnapshot = snapshotQueue(blockedSuspendedQueue);
+        }
+        listenerSnapshot.onQueuesUpdated(readySnapshot, blockedSnapshot, finishedSnapshot, readySuspendedSnapshot, blockedSuspendedSnapshot);
+    }
+
+    private List<ProcessControlBlock> snapshotQueue(CustomQueue<ProcessControlBlock> queue) {
+        Object[] raw = queue.getAllProcesses();
+        List<ProcessControlBlock> items = new ArrayList<>(raw.length);
+        for (Object value : raw) {
+            if (value instanceof ProcessControlBlock pcb) {
+                items.add(pcb);
+            }
+        }
+        return Collections.unmodifiableList(items);
+    }
+
+    public void setCpuListener(CpuListener listener) {
+        synchronized (stateLock) {
+            cpuListener = listener;
+        }
+        notifyCpuListener();
+    }
+
+    private void notifyCpuListener() {
+        CpuListener listenerSnapshot;
+        ProcessControlBlock currentProcess;
+        long currentCycle;
+        CpuMode mode;
+        synchronized (stateLock) {
+            listenerSnapshot = cpuListener;
+            if (listenerSnapshot == null) {
+                return;
+            }
+            currentProcess = cpu != null ? cpu.getCurrentProcess() : null;
+            currentCycle = globalClockCycle.get();
+            mode = currentProcess == null ? CpuMode.OS : CpuMode.USUARIO;
+        }
+        listenerSnapshot.onCpuUpdated(currentProcess, currentCycle, mode);
+    }
+
+    @FunctionalInterface
+    public interface QueueListener {
+        void onQueuesUpdated(List<ProcessControlBlock> ready,
+                             List<ProcessControlBlock> blocked,
+                             List<ProcessControlBlock> finished,
+                             List<ProcessControlBlock> readySuspended,
+                             List<ProcessControlBlock> blockedSuspended);
+    }
+
+    @FunctionalInterface
+    public interface CpuListener {
+        void onCpuUpdated(ProcessControlBlock current,
+                          long clockCycle,
+                          CpuMode mode);
+    }
+
+    public enum CpuMode {
+        OS("OS"),
+        USUARIO("Usuario");
+
+        private final String displayName;
+
+        CpuMode(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 }
