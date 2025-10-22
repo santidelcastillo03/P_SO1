@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import javax.swing.JOptionPane;
 import scheduler.PolicyType;
 
 /**
@@ -130,12 +132,14 @@ public class MainFrame extends javax.swing.JFrame {
             PolicyType policy = resolveActivePolicy(operatingSystem);
             controlsPanel.setControlsState(policy,
                     operatingSystem.getCycleDurationMillis(),
-                    operatingSystem.getRoundRobinQuantum());
+                    operatingSystem.getRoundRobinQuantum(),
+                    operatingSystem.getFeedbackQuanta());
         } else {
             queuesPanel.updateQueueViews(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
             cpuPanel.updateCpuView(null, 0L, OperatingSystem.CpuMode.OS);
             controlsPanel.setControlsState(PolicyType.FCFS, 100L, 4);
         }
+        refreshSimulationControls();
     }
 
     private void handleQueueUpdate(List<ProcessControlBlock> ready,
@@ -157,8 +161,12 @@ public class MainFrame extends javax.swing.JFrame {
         controlsPanel.setPolicyChangeListener(this::handlePolicySelected);
         controlsPanel.setSpeedChangeListener(this::handleSpeedChanged);
         controlsPanel.setQuantumChangeListener(this::handleQuantumChanged);
+        controlsPanel.setFeedbackQuantumListener(this::handleFeedbackQuantumChanged);
         controlsPanel.setProcessCreationListener(this::handleProcessCreation);
         controlsPanel.setScenarioLoadListener(this::handleScenarioLoad);
+        controlsPanel.setStartListener(this::handleStartRequested);
+        controlsPanel.setPauseListener(this::handlePauseRequested);
+        controlsPanel.setResetListener(this::handleResetRequested);
     }
 
     private void handlePolicySelected(PolicyType policy) {
@@ -168,7 +176,8 @@ public class MainFrame extends javax.swing.JFrame {
         operatingSystem.setSchedulingPolicy(policy);
         controlsPanel.setControlsState(policy,
                 operatingSystem.getCycleDurationMillis(),
-                operatingSystem.getRoundRobinQuantum());
+                operatingSystem.getRoundRobinQuantum(),
+                operatingSystem.getFeedbackQuanta());
     }
 
     private void handleSpeedChanged(long cycleDuration) {
@@ -185,6 +194,13 @@ public class MainFrame extends javax.swing.JFrame {
         operatingSystem.setRoundRobinQuantum(quantum);
     }
 
+    private void handleFeedbackQuantumChanged(int[] quanta) {
+        if (operatingSystem == null || quanta == null) {
+            return;
+        }
+        operatingSystem.setFeedbackQuanta(quanta);
+    }
+
     private void handleProcessCreation(ControlsPanel.ProcessFormData data) {
         if (operatingSystem == null || data == null) {
             return;
@@ -197,6 +213,7 @@ public class MainFrame extends javax.swing.JFrame {
                 data.ioCycle,
                 data.ioDuration);
         scheduleProcess(request);
+        refreshSimulationControls();
     }
 
     private PolicyType resolveActivePolicy(OperatingSystem os) {
@@ -227,6 +244,97 @@ public class MainFrame extends javax.swing.JFrame {
             }
         }
         logger.info(() -> String.format("Escenario '%s' cargado con %d procesos", scenarioName, scenario.size()));
+        refreshSimulationControls();
+    }
+
+    /**
+     * Gestiona la petición de inicio del reloj del simulador.
+     */
+    private void handleStartRequested() {
+        if (operatingSystem == null) {
+            showSimulationMessage("No hay un sistema operativo vinculado para iniciar la simulación.", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (operatingSystem.isClockRunning()) {
+            refreshSimulationControls();
+            return;
+        }
+        try {
+            operatingSystem.startSystemClock();
+        } catch (IllegalStateException ex) {
+            logger.log(Level.WARNING, "Fallo al iniciar la simulación", ex);
+            showSimulationMessage("No se pudo iniciar la simulación: " + ex.getMessage(), JOptionPane.ERROR_MESSAGE);
+        }
+        refreshSimulationControls();
+    }
+
+    /**
+     * Gestiona la solicitud de pausa sobre el reloj del simulador.
+     */
+    private void handlePauseRequested() {
+        if (operatingSystem == null) {
+            showSimulationMessage("No hay un sistema operativo vinculado para pausar.", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!operatingSystem.isClockRunning()) {
+            refreshSimulationControls();
+            return;
+        }
+        operatingSystem.stopSystemClock();
+        refreshSimulationControls();
+    }
+
+    /**
+     * Gestiona la solicitud de reinicio del simulador limpiando colas y reloj.
+     */
+    private void handleResetRequested() {
+        if (operatingSystem == null) {
+            showSimulationMessage("No hay un sistema operativo vinculado para reiniciar.", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        operatingSystem.resetSimulation();
+        synchronized (pendingProcesses) {
+            pendingProcesses.clear();
+        }
+        refreshSimulationControls();
+    }
+
+    /**
+     * Actualiza los estados de los botones de simulación según el contexto actual.
+     */
+    private void refreshSimulationControls() {
+        boolean running = operatingSystem != null && operatingSystem.isClockRunning();
+        boolean started = hasSimulationHistory();
+        controlsPanel.setSimulationState(running, started);
+    }
+
+    /**
+     * Determina si la simulación ya inició o posee procesos pendientes.
+     * @return true cuando existen ciclos avanzados o procesos en colas
+     */
+    private boolean hasSimulationHistory() {
+        if (operatingSystem == null) {
+            return false;
+        }
+        return operatingSystem.isClockRunning()
+                || operatingSystem.getGlobalClockCycle() > 0
+                || operatingSystem.readyQueueSize() > 0
+                || operatingSystem.blockedQueueSize() > 0
+                || operatingSystem.finishedQueueSize() > 0
+                || operatingSystem.readySuspendedQueueSize() > 0
+                || operatingSystem.blockedSuspendedQueueSize() > 0;
+    }
+
+    /**
+     * Muestra un mensaje emergente relacionado con la simulación.
+     * @param message texto que se desea mostrar
+     * @param messageType tipo de mensaje de JOptionPane
+     */
+    private void showSimulationMessage(String message, int messageType) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        JOptionPane.showMessageDialog(this, message, "Simulación", messageType);
     }
 
     private void scheduleProcess(ProcessRequest request) {

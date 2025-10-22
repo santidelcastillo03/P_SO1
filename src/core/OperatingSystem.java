@@ -6,6 +6,7 @@
 package core;
 
 import datastructures.CustomQueue;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import scheduler.Dispatcher;
+import scheduler.Feedback;
 import scheduler.PolicyType;
 import scheduler.RoundRobin;
 import scheduler.Scheduler;
@@ -66,6 +68,8 @@ public class OperatingSystem {
     private Dispatcher dispatcher;
     /** Quantum utilizado cuando Round Robin es la política activa. */
     private int roundRobinQuantum;
+    /** Quantums por nivel utilizados cuando Feedback está activo. */
+    private int[] feedbackQuanta;
     private transient QueueListener queueListener;
     private transient CpuListener cpuListener;
 
@@ -89,6 +93,7 @@ public class OperatingSystem {
         this.scheduler = new Scheduler();
         this.dispatcher = new Dispatcher();
         this.roundRobinQuantum = RoundRobin.DEFAULT_QUANTUM;
+        this.feedbackQuanta = CPU.defaultFeedbackQuanta();
     }
 
     /**
@@ -295,6 +300,7 @@ public class OperatingSystem {
         this.cpu = Objects.requireNonNull(cpu, "La CPU asociada no puede ser nula");
         this.cpu.setScheduler(scheduler);
         this.cpu.setTimeQuantum(roundRobinQuantum);
+        this.cpu.setFeedbackQuanta(feedbackQuanta);
         notifyCpuListener();
     }
 
@@ -307,6 +313,7 @@ public class OperatingSystem {
         if (cpu != null) {
             cpu.setScheduler(this.scheduler);
             cpu.setTimeQuantum(roundRobinQuantum);
+            cpu.setFeedbackQuanta(feedbackQuanta);
         }
     }
 
@@ -328,6 +335,9 @@ public class OperatingSystem {
         if (cpu != null && policy instanceof RoundRobin) {
             cpu.setTimeQuantum(roundRobinQuantum);
         }
+        if (cpu != null && policy instanceof Feedback) {
+            cpu.setFeedbackQuanta(feedbackQuanta);
+        }
     }
 
     /**
@@ -339,6 +349,9 @@ public class OperatingSystem {
         scheduler.setPolicy(policyType);
         if (cpu != null && policyType == PolicyType.ROUND_ROBIN) {
             cpu.setTimeQuantum(roundRobinQuantum);
+        }
+        if (cpu != null && policyType == PolicyType.FEEDBACK) {
+            cpu.setFeedbackQuanta(feedbackQuanta);
         }
     }
 
@@ -370,6 +383,37 @@ public class OperatingSystem {
      */
     public int getRoundRobinQuantum() {
         return roundRobinQuantum;
+    }
+
+    /**
+     * Configura los quantums por nivel utilizados por la política Feedback.
+     * @param quanta arreglo de valores positivos por nivel
+     */
+    public void setFeedbackQuanta(int[] quanta) {
+        Objects.requireNonNull(quanta, "Los quantums de Feedback no pueden ser nulos");
+        if (quanta.length != feedbackQuanta.length) {
+            throw new IllegalArgumentException("Se esperaban " + feedbackQuanta.length + " niveles para Feedback");
+        }
+        int[] sanitized = new int[quanta.length];
+        for (int i = 0; i < quanta.length; i++) {
+            int value = quanta[i];
+            if (value <= 0) {
+                throw new IllegalArgumentException("El quantum para el nivel " + i + " debe ser positivo");
+            }
+            sanitized[i] = value;
+        }
+        this.feedbackQuanta = sanitized;
+        if (cpu != null) {
+            cpu.setFeedbackQuanta(feedbackQuanta);
+        }
+    }
+
+    /**
+     * Devuelve una copia de los quantums configurados para Feedback.
+     * @return arreglo con los quantums por nivel
+     */
+    public int[] getFeedbackQuanta() {
+        return Arrays.copyOf(feedbackQuanta, feedbackQuanta.length);
     }
 
     public ProcessControlBlock createProcess(String nombre,
@@ -485,6 +529,27 @@ public class OperatingSystem {
                 clockThread = null;
             }
         }
+    }
+
+    /**
+     * Restablece el estado del simulador deteniendo el reloj y limpiando todas las colas.
+     */
+    public void resetSimulation() {
+        stopSystemClock();
+        synchronized (stateLock) {
+            readyQueue.clear();
+            blockedQueue.clear();
+            finishedProcessesList.clear();
+            readySuspendedQueue.clear();
+            blockedSuspendedQueue.clear();
+            processesInMemory = 0;
+            if (cpu != null) {
+                cpu.releaseProcess();
+            }
+        }
+        globalClockCycle.set(0L);
+        notifyQueueListener();
+        notifyCpuListener();
     }
 
     /**

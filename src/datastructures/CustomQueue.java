@@ -114,6 +114,15 @@ public class CustomQueue<T> {
     }
 
     /**
+     * Vacía el contenido de la cola eliminando todas las referencias almacenadas.
+     */
+    public synchronized void clear() {
+        head = null;
+        tail = null;
+        size = 0;
+    }
+
+    /**
      * Método auxiliar interno para verificar si la cola está vacía sin relockear.
      * @return true si el tamaño es 0
      */

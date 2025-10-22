@@ -6,6 +6,7 @@
 package core;
 
 import datastructures.CustomQueue;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.logging.Logger;
 import scheduler.Feedback;
@@ -36,8 +37,10 @@ public class CPU {
     private int cyclesExecutedByCurrentProcess;
     /** Quantum configurado para Round Robin (en ciclos). */
     private int timeQuantum;
-    /** Quantums base para la política Feedback. */
-    private static final int[] FEEDBACK_QUANTA = {1, 2, 3, 4, Integer.MAX_VALUE};
+    /** Quantums base por nivel para la política Feedback. */
+    private static final int[] DEFAULT_FEEDBACK_QUANTA = {1, 2, 3, 4};
+    /** Quantums configurables por nivel para Feedback. */
+    private final int[] feedbackQuanta;
 
     /**
      * Crea una CPU asociada al sistema operativo y al manejador de I/O.
@@ -50,6 +53,7 @@ public class CPU {
         this.scheduler = null;
         this.cyclesExecutedByCurrentProcess = 0;
         this.timeQuantum = 4;
+        this.feedbackQuanta = Arrays.copyOf(DEFAULT_FEEDBACK_QUANTA, DEFAULT_FEEDBACK_QUANTA.length);
     }
 
     /**
@@ -96,6 +100,40 @@ public class CPU {
      */
     public int getTimeQuantum() {
         return timeQuantum;
+    }
+
+    /**
+     * Actualiza los quantums utilizados por cada nivel de la política Feedback.
+     * @param quanta arreglo con los quantums por nivel
+     */
+    public void setFeedbackQuanta(int[] quanta) {
+        Objects.requireNonNull(quanta, "Los quantums de Feedback no pueden ser nulos");
+        if (quanta.length != feedbackQuanta.length) {
+            throw new IllegalArgumentException("Se esperaban " + feedbackQuanta.length + " niveles para Feedback");
+        }
+        for (int i = 0; i < quanta.length; i++) {
+            int value = quanta[i];
+            if (value <= 0) {
+                throw new IllegalArgumentException("El quantum para el nivel " + i + " debe ser positivo");
+            }
+            feedbackQuanta[i] = value;
+        }
+    }
+
+    /**
+     * Devuelve una copia de los quantums configurados para la política Feedback.
+     * @return arreglo con los quantums por nivel
+     */
+    public int[] getFeedbackQuanta() {
+        return Arrays.copyOf(feedbackQuanta, feedbackQuanta.length);
+    }
+
+    /**
+     * Crea una copia de los quantums predeterminados para Feedback.
+     * @return arreglo con los valores por defecto
+     */
+    public static int[] defaultFeedbackQuanta() {
+        return Arrays.copyOf(DEFAULT_FEEDBACK_QUANTA, DEFAULT_FEEDBACK_QUANTA.length);
     }
 
     /**
@@ -338,16 +376,13 @@ public class CPU {
         if (!isFeedbackActive() || currentProcess == null) {
             return;
         }
-        int level = currentProcess.getPriorityLevel();
-        int levelQuantum = FEEDBACK_QUANTA[level];
-        if (levelQuantum == Integer.MAX_VALUE) {
-            return;
-        }
+        int level = Math.max(0, Math.min(currentProcess.getPriorityLevel(), feedbackQuanta.length - 1));
+        int levelQuantum = feedbackQuanta[level];
         if (cyclesExecutedByCurrentProcess < levelQuantum) {
             return;
         }
         ProcessControlBlock processToRequeue = currentProcess;
-        int nextLevel = Math.min(level + 1, FEEDBACK_QUANTA.length - 1);
+        int nextLevel = Math.min(level + 1, feedbackQuanta.length - 1);
         processToRequeue.setPriorityLevel(nextLevel);
         currentProcess = null;
         cyclesExecutedByCurrentProcess = 0;

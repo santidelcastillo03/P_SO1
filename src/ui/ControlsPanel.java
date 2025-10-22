@@ -4,6 +4,7 @@
  */
 package ui;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
@@ -22,14 +23,21 @@ public class ControlsPanel extends javax.swing.JPanel {
 
     private static final int MIN_SPEED = 10;
     private static final int MAX_SPEED = 1000;
+    private static final int[] DEFAULT_FEEDBACK_QUANTA = {1, 2, 3, 4};
     private static final String CPU_BOUND_OPTION = "CPU bound";
     private static final String IO_BOUND_OPTION = "I/O bound";
     private transient Consumer<PolicyType> policyListener;
     private transient LongConsumer speedListener;
     private transient IntConsumer quantumListener;
+    private transient Consumer<int[]> feedbackQuantumListener;
     private transient Consumer<ProcessFormData> processListener;
     private transient Consumer<String> scenarioListener;
+    private transient Runnable startListener;
+    private transient Runnable pauseListener;
+    private transient Runnable resetListener;
     private boolean updating;
+    private boolean simulationRunning;
+    private boolean simulationStarted;
 
     /**
      * Construye el panel de controles que agrupa las acciones principales.
@@ -39,11 +47,19 @@ public class ControlsPanel extends javax.swing.JPanel {
         planificadorComboBox.addActionListener(evt -> handlePolicySelection());
         velocidadSlider.addChangeListener(evt -> handleSpeedChange());
         quantumSpinner.addChangeListener(evt -> handleQuantumChange());
+        feedbackQuantumSpinner0.addChangeListener(evt -> handleFeedbackQuantumChange());
+        feedbackQuantumSpinner1.addChangeListener(evt -> handleFeedbackQuantumChange());
+        feedbackQuantumSpinner2.addChangeListener(evt -> handleFeedbackQuantumChange());
+        feedbackQuantumSpinner3.addChangeListener(evt -> handleFeedbackQuantumChange());
         tipoComboBox.addActionListener(evt -> updateIoInputs());
         crearProcesoButton.addActionListener(evt -> handleCreateProcess());
         cargarEscenarioButton.addActionListener(evt -> handleLoadScenario());
+        iniciarButton.addActionListener(evt -> handleStartClick());
+        pausarButton.addActionListener(evt -> handlePauseClick());
+        reiniciarButton.addActionListener(evt -> handleResetClick());
         setControlsState(PolicyType.FCFS, 100L, 4);
         updateIoInputs();
+        setSimulationState(false, false);
     }
 
     /**
@@ -59,6 +75,16 @@ public class ControlsPanel extends javax.swing.JPanel {
         planificadorComboBox = new javax.swing.JComboBox<>();
         quantumLabel = new javax.swing.JLabel();
         quantumSpinner = new javax.swing.JSpinner();
+        feedbackLabel = new javax.swing.JLabel();
+        feedbackPanel = new javax.swing.JPanel();
+        feedbackNivel0Label = new javax.swing.JLabel();
+        feedbackQuantumSpinner0 = new javax.swing.JSpinner();
+        feedbackNivel1Label = new javax.swing.JLabel();
+        feedbackQuantumSpinner1 = new javax.swing.JSpinner();
+        feedbackNivel2Label = new javax.swing.JLabel();
+        feedbackQuantumSpinner2 = new javax.swing.JSpinner();
+        feedbackNivel3Label = new javax.swing.JLabel();
+        feedbackQuantumSpinner3 = new javax.swing.JSpinner();
         velocidadLabel = new javax.swing.JLabel();
         velocidadSlider = new javax.swing.JSlider();
         velocidadValorLabel = new javax.swing.JLabel();
@@ -129,10 +155,54 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.insets = new java.awt.Insets(0, 4, 0, 0);
         add(quantumSpinner, gridBagConstraints);
 
-        velocidadLabel.setText("Velocidad (ms):");
+        feedbackLabel.setText("Feedback:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 2;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 6);
+        add(feedbackLabel, gridBagConstraints);
+
+        feedbackPanel.setOpaque(false);
+        feedbackPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+
+        feedbackNivel0Label.setText("Nivel 0:");
+        feedbackPanel.add(feedbackNivel0Label);
+
+        feedbackQuantumSpinner0.setModel(new SpinnerNumberModel(1, 1, 50, 1));
+        feedbackPanel.add(feedbackQuantumSpinner0);
+
+        feedbackNivel1Label.setText("Nivel 1:");
+        feedbackPanel.add(feedbackNivel1Label);
+
+        feedbackQuantumSpinner1.setModel(new SpinnerNumberModel(2, 1, 50, 1));
+        feedbackPanel.add(feedbackQuantumSpinner1);
+
+        feedbackNivel2Label.setText("Nivel 2:");
+        feedbackPanel.add(feedbackNivel2Label);
+
+        feedbackQuantumSpinner2.setModel(new SpinnerNumberModel(3, 1, 50, 1));
+        feedbackPanel.add(feedbackQuantumSpinner2);
+
+        feedbackNivel3Label.setText("Nivel 3:");
+        feedbackPanel.add(feedbackNivel3Label);
+
+        feedbackQuantumSpinner3.setModel(new SpinnerNumberModel(4, 1, 50, 1));
+        feedbackPanel.add(feedbackQuantumSpinner3);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridwidth = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 0);
+        add(feedbackPanel, gridBagConstraints);
+
+        velocidadLabel.setText("Velocidad (ms):");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 3;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 6);
         add(velocidadLabel, gridBagConstraints);
@@ -143,7 +213,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         velocidadSlider.setOpaque(false);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridy = 3;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.gridwidth = 2;
@@ -153,7 +223,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         velocidadValorLabel.setText("100 ms");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridy = 3;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 0);
         add(velocidadValorLabel, gridBagConstraints);
@@ -161,21 +231,21 @@ public class ControlsPanel extends javax.swing.JPanel {
         iniciarButton.setText("Iniciar");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 6);
         add(iniciarButton, gridBagConstraints);
 
         pausarButton.setText("Pausar");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 6);
         add(pausarButton, gridBagConstraints);
 
         reiniciarButton.setText("Reiniciar");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 0);
         add(reiniciarButton, gridBagConstraints);
 
@@ -183,7 +253,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         procesosLabel.setText("Crear proceso");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 5;
         gridBagConstraints.gridwidth = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(18, 0, 8, 0);
@@ -192,7 +262,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         escenarioLabel.setText("Escenario:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 6);
         add(escenarioLabel, gridBagConstraints);
@@ -200,7 +270,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         escenarioComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Seleccionar", "FCFS", "SPN", "HRRN", "SRTF", "Round Robin", "Feedback" }));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -209,14 +279,14 @@ public class ControlsPanel extends javax.swing.JPanel {
         cargarEscenarioButton.setText("Cargar");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         add(cargarEscenarioButton, gridBagConstraints);
 
         nombreLabel.setText("Nombre:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridy = 7;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 6);
         add(nombreLabel, gridBagConstraints);
@@ -224,7 +294,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         nombreTextField.setColumns(12);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridy = 7;
         gridBagConstraints.gridwidth = 3;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -233,7 +303,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         arriboLabel.setText("Arribo (ciclo):");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 7;
+        gridBagConstraints.gridy = 8;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
         add(arriboLabel, gridBagConstraints);
@@ -241,7 +311,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         arriboSpinner.setModel(new SpinnerNumberModel(0, 0, 2000, 1));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 7;
+        gridBagConstraints.gridy = 8;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 12);
         add(arriboSpinner, gridBagConstraints);
@@ -249,7 +319,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         instruccionesLabel.setText("Instrucciones:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 8;
+        gridBagConstraints.gridy = 9;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
         add(instruccionesLabel, gridBagConstraints);
@@ -257,7 +327,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         instruccionesSpinner.setModel(new SpinnerNumberModel(10, 1, 500, 1));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 8;
+        gridBagConstraints.gridy = 9;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 12);
         add(instruccionesSpinner, gridBagConstraints);
@@ -265,7 +335,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         tipoLabel.setText("Tipo:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 8;
+        gridBagConstraints.gridy = 9;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
         add(tipoLabel, gridBagConstraints);
@@ -273,7 +343,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         tipoComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { CPU_BOUND_OPTION, IO_BOUND_OPTION }));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 8;
+        gridBagConstraints.gridy = 9;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 0);
         add(tipoComboBox, gridBagConstraints);
@@ -281,7 +351,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         ioCycleLabel.setText("Ciclo I/O:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 9;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
         add(ioCycleLabel, gridBagConstraints);
@@ -289,7 +359,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         ioCycleSpinner.setModel(new SpinnerNumberModel(3, 0, 500, 1));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 9;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 12);
         add(ioCycleSpinner, gridBagConstraints);
@@ -297,7 +367,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         ioDurationLabel.setText("Duración I/O:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 9;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
         add(ioDurationLabel, gridBagConstraints);
@@ -305,7 +375,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         ioDurationSpinner.setModel(new SpinnerNumberModel(2, 1, 200, 1));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 9;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 0);
         add(ioDurationSpinner, gridBagConstraints);
@@ -313,7 +383,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         crearProcesoButton.setText("Crear proceso");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 10;
+        gridBagConstraints.gridy = 11;
         gridBagConstraints.gridwidth = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 0);
@@ -332,6 +402,10 @@ public class ControlsPanel extends javax.swing.JPanel {
         this.quantumListener = listener;
     }
 
+    public void setFeedbackQuantumListener(Consumer<int[]> listener) {
+        this.feedbackQuantumListener = listener;
+    }
+
     public void setProcessCreationListener(Consumer<ProcessFormData> listener) {
         this.processListener = listener;
     }
@@ -340,15 +414,56 @@ public class ControlsPanel extends javax.swing.JPanel {
         this.scenarioListener = listener;
     }
 
+    /**
+     * Registra el callback que se ejecuta cuando se solicita iniciar la simulación.
+     * @param listener acción a ejecutar al presionar el botón Iniciar
+     */
+    public void setStartListener(Runnable listener) {
+        this.startListener = listener;
+    }
+
+    /**
+     * Registra el callback que se ejecuta cuando se solicita pausar la simulación.
+     * @param listener acción a ejecutar al presionar el botón Pausar
+     */
+    public void setPauseListener(Runnable listener) {
+        this.pauseListener = listener;
+    }
+
+    /**
+     * Registra el callback que se ejecuta cuando se solicita reiniciar la simulación.
+     * @param listener acción a ejecutar al presionar el botón Reiniciar
+     */
+    public void setResetListener(Runnable listener) {
+        this.resetListener = listener;
+    }
+
+    /**
+     * Actualiza el estado visual de los botones de simulación.
+     * @param running indica si el reloj del sistema está activo
+     * @param started señala si la simulación se ha inicializado al menos una vez
+     */
+    public void setSimulationState(boolean running, boolean started) {
+        this.simulationRunning = running;
+        this.simulationStarted = started || running;
+        updateSimulationButtons();
+    }
+
     public void setControlsState(PolicyType policyType, long cycleDurationMs, int quantum) {
+        setControlsState(policyType, cycleDurationMs, quantum, null);
+    }
+
+    public void setControlsState(PolicyType policyType, long cycleDurationMs, int quantum, int[] feedbackQuanta) {
         PolicyType resolvedPolicy = policyType != null ? policyType : PolicyType.FCFS;
         long clampedDuration = Math.max(MIN_SPEED, Math.min(MAX_SPEED, cycleDurationMs));
         int normalizedQuantum = Math.max(1, Math.min(50, quantum));
+        int[] normalizedFeedbackQuanta = normalizeFeedbackQuanta(feedbackQuanta);
         updating = true;
         planificadorComboBox.setSelectedIndex(policyToIndex(resolvedPolicy));
         velocidadSlider.setValue((int) clampedDuration);
         velocidadValorLabel.setText(formatDuration(clampedDuration));
         quantumSpinner.setValue(normalizedQuantum);
+        applyFeedbackQuanta(normalizedFeedbackQuanta);
         updateQuantumControls(resolvedPolicy);
         updating = false;
     }
@@ -427,6 +542,33 @@ public class ControlsPanel extends javax.swing.JPanel {
         scenarioListener.accept(scenario);
     }
 
+    /**
+     * Atiende el clic sobre el botón Iniciar y delega la acción registrada.
+     */
+    private void handleStartClick() {
+        if (startListener != null) {
+            startListener.run();
+        }
+    }
+
+    /**
+     * Atiende el clic sobre el botón Pausar y delega la acción registrada.
+     */
+    private void handlePauseClick() {
+        if (pauseListener != null) {
+            pauseListener.run();
+        }
+    }
+
+    /**
+     * Atiende el clic sobre el botón Reiniciar y delega la acción registrada.
+     */
+    private void handleResetClick() {
+        if (resetListener != null) {
+            resetListener.run();
+        }
+    }
+
     private int policyToIndex(PolicyType policy) {
         return switch (policy) {
             case FCFS -> 0;
@@ -457,10 +599,73 @@ public class ControlsPanel extends javax.swing.JPanel {
         return duration + " ms";
     }
 
+    private int[] normalizeFeedbackQuanta(int[] candidate) {
+        int[] values = Arrays.copyOf(DEFAULT_FEEDBACK_QUANTA, DEFAULT_FEEDBACK_QUANTA.length);
+        if (candidate == null) {
+            return values;
+        }
+        for (int i = 0; i < values.length && i < candidate.length; i++) {
+            int value = candidate[i];
+            if (value < 1) {
+                value = 1;
+            } else if (value > 50) {
+                value = 50;
+            }
+            values[i] = value;
+        }
+        return values;
+    }
+
+    private void applyFeedbackQuanta(int[] values) {
+        if (values.length > 0) {
+            feedbackQuantumSpinner0.setValue(values[0]);
+        }
+        if (values.length > 1) {
+            feedbackQuantumSpinner1.setValue(values[1]);
+        }
+        if (values.length > 2) {
+            feedbackQuantumSpinner2.setValue(values[2]);
+        }
+        if (values.length > 3) {
+            feedbackQuantumSpinner3.setValue(values[3]);
+        }
+    }
+
+    private int[] readFeedbackQuanta() {
+        return new int[]{
+            ((Number) feedbackQuantumSpinner0.getValue()).intValue(),
+            ((Number) feedbackQuantumSpinner1.getValue()).intValue(),
+            ((Number) feedbackQuantumSpinner2.getValue()).intValue(),
+            ((Number) feedbackQuantumSpinner3.getValue()).intValue()
+        };
+    }
+
     private void updateQuantumControls(PolicyType policy) {
-        boolean enabled = policy == PolicyType.ROUND_ROBIN;
-        quantumLabel.setEnabled(enabled);
-        quantumSpinner.setEnabled(enabled);
+        boolean rrEnabled = policy == PolicyType.ROUND_ROBIN;
+        quantumLabel.setEnabled(rrEnabled);
+        quantumSpinner.setEnabled(rrEnabled);
+        boolean feedbackEnabled = policy == PolicyType.FEEDBACK;
+        setFeedbackControlsEnabled(feedbackEnabled);
+    }
+
+    private void setFeedbackControlsEnabled(boolean enabled) {
+        feedbackLabel.setEnabled(enabled);
+        feedbackNivel0Label.setEnabled(enabled);
+        feedbackNivel1Label.setEnabled(enabled);
+        feedbackNivel2Label.setEnabled(enabled);
+        feedbackNivel3Label.setEnabled(enabled);
+        feedbackQuantumSpinner0.setEnabled(enabled);
+        feedbackQuantumSpinner1.setEnabled(enabled);
+        feedbackQuantumSpinner2.setEnabled(enabled);
+        feedbackQuantumSpinner3.setEnabled(enabled);
+        feedbackPanel.setEnabled(enabled);
+    }
+
+    private void handleFeedbackQuantumChange() {
+        if (updating || feedbackQuantumListener == null || !feedbackQuantumSpinner0.isEnabled()) {
+            return;
+        }
+        feedbackQuantumListener.accept(readFeedbackQuanta());
     }
 
     private void updateIoInputs() {
@@ -479,6 +684,15 @@ public class ControlsPanel extends javax.swing.JPanel {
         ioCycleSpinner.setValue(3);
         ioDurationSpinner.setValue(2);
         updateIoInputs();
+    }
+
+    /**
+     * Ajusta la habilitación de los botones según el estado de la simulación.
+     */
+    private void updateSimulationButtons() {
+        iniciarButton.setEnabled(!simulationRunning);
+        pausarButton.setEnabled(simulationRunning);
+        reiniciarButton.setEnabled(simulationStarted && !simulationRunning);
     }
 
     public static final class ProcessFormData {
@@ -517,6 +731,16 @@ public class ControlsPanel extends javax.swing.JPanel {
     private javax.swing.JComboBox<String> planificadorComboBox;
     private javax.swing.JLabel planificadorLabel;
     private javax.swing.JLabel procesosLabel;
+    private javax.swing.JLabel feedbackLabel;
+    private javax.swing.JPanel feedbackPanel;
+    private javax.swing.JLabel feedbackNivel0Label;
+    private javax.swing.JSpinner feedbackQuantumSpinner0;
+    private javax.swing.JLabel feedbackNivel1Label;
+    private javax.swing.JSpinner feedbackQuantumSpinner1;
+    private javax.swing.JLabel feedbackNivel2Label;
+    private javax.swing.JSpinner feedbackQuantumSpinner2;
+    private javax.swing.JLabel feedbackNivel3Label;
+    private javax.swing.JSpinner feedbackQuantumSpinner3;
     private javax.swing.JLabel quantumLabel;
     private javax.swing.JSpinner quantumSpinner;
     private javax.swing.JButton reiniciarButton;
