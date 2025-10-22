@@ -21,18 +21,13 @@
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Scheduler.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/SRTF.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/SchedulingPolicy.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/ControlsPanel.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/CpuPanel.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/LogPanel.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/MainFrame.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/MetricsPanel.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/QueuesPanel.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/ConfigManager.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/MetricsCalculator.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/ProcessData.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/HRRN.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Feedback.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/p_so1/P_so1.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/CpuPanel.java</file>
         </group>
     </open-files>
 </project-private>
