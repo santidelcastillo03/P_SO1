@@ -7,7 +7,6 @@ package scheduler;
 import core.ProcessControlBlock;
 import datastructures.CustomQueue;
 import datastructures.EnumMap;
-import datastructures.Map;
 import java.util.Objects;
 
 /**
