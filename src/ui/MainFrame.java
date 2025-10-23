@@ -139,14 +139,15 @@ public class MainFrame extends javax.swing.JFrame {
             controlsPanel.setControlsState(policy,
                     operatingSystem.getCycleDurationMillis(),
                     operatingSystem.getRoundRobinQuantum(),
-                    operatingSystem.getFeedbackQuanta());
+                    operatingSystem.getFeedbackQuanta(),
+                    operatingSystem.getMaxProcessesInMemory());
             if (operatingSystem == managedOperatingSystem && managedIoHandler != null) {
                 managedIoHandler.setCycleDurationMillis(operatingSystem.getCycleDurationMillis());
             }
         } else {
             queuesPanel.updateQueueViews(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
             cpuPanel.updateCpuView(null, 0L, OperatingSystem.CpuMode.OS);
-            controlsPanel.setControlsState(PolicyType.FCFS, 100L, 4);
+            controlsPanel.setControlsState(PolicyType.FCFS, 100L, 4, null, controlsPanel.getSelectedMaxMemoryValue());
         }
         refreshSimulationControls();
     }
@@ -172,6 +173,7 @@ public class MainFrame extends javax.swing.JFrame {
         controlsPanel.setQuantumChangeListener(this::handleQuantumChanged);
         controlsPanel.setFeedbackQuantumListener(this::handleFeedbackQuantumChanged);
         controlsPanel.setProcessCreationListener(this::handleProcessCreation);
+        controlsPanel.setMaxMemoryListener(this::handleMaxMemoryChanged);
         controlsPanel.setRandomProcessesListener(this::handleRandomProcessesRequested);
         controlsPanel.setStartListener(this::handleStartRequested);
         controlsPanel.setPauseListener(this::handlePauseRequested);
@@ -186,7 +188,8 @@ public class MainFrame extends javax.swing.JFrame {
         controlsPanel.setControlsState(policy,
                 operatingSystem.getCycleDurationMillis(),
                 operatingSystem.getRoundRobinQuantum(),
-                operatingSystem.getFeedbackQuanta());
+                operatingSystem.getFeedbackQuanta(),
+                operatingSystem.getMaxProcessesInMemory());
     }
 
     private void handleSpeedChanged(long cycleDuration) {
@@ -211,6 +214,21 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         operatingSystem.setFeedbackQuanta(quanta);
+    }
+
+    /**
+     * Ajusta el límite de procesos residentes en memoria según la entrada del usuario.
+     * @param limit nuevo tope de procesos en memoria principal
+     */
+    private void handleMaxMemoryChanged(int limit) {
+        if (operatingSystem == null) {
+            return;
+        }
+        try {
+            operatingSystem.setMaxProcessesInMemory(limit);
+        } catch (IllegalArgumentException ex) {
+            logger.log(Level.WARNING, "Límite de procesos inválido: {0}", limit);
+        }
     }
 
     private void handleProcessCreation(ControlsPanel.ProcessFormData data) {
@@ -395,6 +413,8 @@ public class MainFrame extends javax.swing.JFrame {
         long desiredSpeed = controlsPanel.getSelectedSpeedMillis();
         int desiredQuantum = controlsPanel.getSelectedQuantumValue();
         int[] desiredFeedback = controlsPanel.getSelectedFeedbackQuanta();
+        int desiredMaxMemory = controlsPanel.getSelectedMaxMemoryValue();
+        
 
         OperatingSystem os = new OperatingSystem();
         IOHandler handler = new IOHandler(os, desiredSpeed);
@@ -410,7 +430,7 @@ public class MainFrame extends javax.swing.JFrame {
         managedCpu = cpu;
 
         bindOperatingSystem(os);
-        applyConfigurationToOperatingSystem(desiredPolicy, desiredSpeed, desiredQuantum, desiredFeedback);
+        applyConfigurationToOperatingSystem(desiredPolicy, desiredSpeed, desiredQuantum, desiredFeedback, desiredMaxMemory);
         refreshSimulationControls();
     }
 
@@ -420,14 +440,17 @@ public class MainFrame extends javax.swing.JFrame {
      * @param cycleDuration duración de ciclo en milisegundos
      * @param quantum quantum de Round Robin
      * @param feedbackQuanta arreglo de quantums para Feedback
+     * @param maxMemoryLimit límite máximo de procesos en memoria principal
      */
     private void applyConfigurationToOperatingSystem(PolicyType policy,
                                                      long cycleDuration,
                                                      int quantum,
-                                                     int[] feedbackQuanta) {
+                                                     int[] feedbackQuanta,
+                                                     int maxMemoryLimit) {
         if (operatingSystem == null) {
             return;
         }
+        operatingSystem.setMaxProcessesInMemory(maxMemoryLimit);
         operatingSystem.setCycleDurationMillis(cycleDuration);
         if (operatingSystem == managedOperatingSystem && managedIoHandler != null) {
             managedIoHandler.setCycleDurationMillis(cycleDuration);
@@ -440,7 +463,7 @@ public class MainFrame extends javax.swing.JFrame {
         operatingSystem.setFeedbackQuanta(appliedFeedback);
         operatingSystem.setRoundRobinQuantum(quantum);
         operatingSystem.setSchedulingPolicy(policy);
-        controlsPanel.setControlsState(policy, cycleDuration, quantum, appliedFeedback);
+        controlsPanel.setControlsState(policy, cycleDuration, quantum, appliedFeedback, maxMemoryLimit);
     }
 
     /**
@@ -456,6 +479,7 @@ public class MainFrame extends javax.swing.JFrame {
         long desiredSpeed = controlsPanel.getSelectedSpeedMillis();
         int desiredQuantum = controlsPanel.getSelectedQuantumValue();
         int[] desiredFeedback = controlsPanel.getSelectedFeedbackQuanta();
+        int desiredMaxMemory = controlsPanel.getSelectedMaxMemoryValue();
 
         IOHandler handler = new IOHandler(managedOperatingSystem, desiredSpeed);
         Thread ioThread = new Thread(handler, "IOHandler-UI");
@@ -465,7 +489,7 @@ public class MainFrame extends javax.swing.JFrame {
         managedIoThread = ioThread;
         managedCpu = new CPU(managedOperatingSystem, handler);
         managedOperatingSystem.attachCpu(managedCpu);
-        applyConfigurationToOperatingSystem(desiredPolicy, desiredSpeed, desiredQuantum, desiredFeedback);
+        applyConfigurationToOperatingSystem(desiredPolicy, desiredSpeed, desiredQuantum, desiredFeedback, desiredMaxMemory);
     }
 
     /**

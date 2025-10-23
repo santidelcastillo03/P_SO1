@@ -25,8 +25,9 @@ public class CpuPanel extends javax.swing.JPanel {
      * ADVERTENCIA: no modificar manualmente; el editor de formularios lo regenera.
      */
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Código generado">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         contenedor = new javax.swing.JPanel();
         procesoEtiqueta = new javax.swing.JLabel();
@@ -44,27 +45,26 @@ public class CpuPanel extends javax.swing.JPanel {
         modoEtiqueta = new javax.swing.JLabel();
         modoValor = new javax.swing.JLabel();
 
-        setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CPU", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, getFont().deriveFont(java.awt.Font.BOLD)));
+        setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CPU", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Dialog", 1, 12))); // NOI18N
         setLayout(new java.awt.BorderLayout());
 
         contenedor.setOpaque(false);
         contenedor.setLayout(new java.awt.GridBagLayout());
 
-        java.awt.GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.insets = new java.awt.Insets(2, 2, 2, 2);
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-
         procesoEtiqueta.setText("Proceso:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(2, 2, 2, 2);
         contenedor.add(procesoEtiqueta, gridBagConstraints);
 
         procesoValor.setText("Sin proceso");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
-        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         contenedor.add(procesoValor, gridBagConstraints);
 
@@ -79,8 +79,8 @@ public class CpuPanel extends javax.swing.JPanel {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 1;
-        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         contenedor.add(pidValor, gridBagConstraints);
 
         pcEtiqueta.setText("PC:");
@@ -94,8 +94,8 @@ public class CpuPanel extends javax.swing.JPanel {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 2;
-        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         contenedor.add(pcValor, gridBagConstraints);
 
         marEtiqueta.setText("MAR:");
@@ -109,8 +109,8 @@ public class CpuPanel extends javax.swing.JPanel {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 3;
-        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         contenedor.add(marValor, gridBagConstraints);
 
         totalEtiqueta.setText("Total:");
@@ -124,8 +124,8 @@ public class CpuPanel extends javax.swing.JPanel {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 4;
-        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         contenedor.add(totalValor, gridBagConstraints);
 
         cicloEtiqueta.setText("Ciclo actual:");
@@ -139,8 +139,8 @@ public class CpuPanel extends javax.swing.JPanel {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 5;
-        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         contenedor.add(cicloValor, gridBagConstraints);
 
         modoEtiqueta.setText("Modo:");
@@ -154,8 +154,8 @@ public class CpuPanel extends javax.swing.JPanel {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 6;
-        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         contenedor.add(modoValor, gridBagConstraints);
 
         add(contenedor, java.awt.BorderLayout.CENTER);
@@ -188,7 +188,7 @@ public class CpuPanel extends javax.swing.JPanel {
     }
 
 
-    // Declaración de variables - no modificar//GEN-BEGIN:variables
+    // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel cicloEtiqueta;
     private javax.swing.JLabel cicloValor;
     private javax.swing.JPanel contenedor;
@@ -204,5 +204,5 @@ public class CpuPanel extends javax.swing.JPanel {
     private javax.swing.JLabel procesoValor;
     private javax.swing.JLabel totalEtiqueta;
     private javax.swing.JLabel totalValor;
-    // Fin de la declaración de variables//GEN-END:variables
+    // End of variables declaration//GEN-END:variables
 }
