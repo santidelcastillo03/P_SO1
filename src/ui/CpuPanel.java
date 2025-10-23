@@ -35,6 +35,8 @@ public class CpuPanel extends javax.swing.JPanel {
         pidValor = new javax.swing.JLabel();
         pcEtiqueta = new javax.swing.JLabel();
         pcValor = new javax.swing.JLabel();
+        marEtiqueta = new javax.swing.JLabel();
+        marValor = new javax.swing.JLabel();
         totalEtiqueta = new javax.swing.JLabel();
         totalValor = new javax.swing.JLabel();
         cicloEtiqueta = new javax.swing.JLabel();
@@ -96,17 +98,32 @@ public class CpuPanel extends javax.swing.JPanel {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         contenedor.add(pcValor, gridBagConstraints);
 
-        totalEtiqueta.setText("Total:");
+        marEtiqueta.setText("MAR:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
+        gridBagConstraints.insets = new java.awt.Insets(2, 2, 2, 2);
+        contenedor.add(marEtiqueta, gridBagConstraints);
+
+        marValor.setText("--");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        contenedor.add(marValor, gridBagConstraints);
+
+        totalEtiqueta.setText("Total:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.insets = new java.awt.Insets(2, 2, 2, 2);
         contenedor.add(totalEtiqueta, gridBagConstraints);
 
         totalValor.setText("--");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         contenedor.add(totalValor, gridBagConstraints);
@@ -114,14 +131,14 @@ public class CpuPanel extends javax.swing.JPanel {
         cicloEtiqueta.setText("Ciclo actual:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 5;
         gridBagConstraints.insets = new java.awt.Insets(2, 2, 2, 2);
         contenedor.add(cicloEtiqueta, gridBagConstraints);
 
         cicloValor.setText("--");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 5;
         gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         contenedor.add(cicloValor, gridBagConstraints);
@@ -129,14 +146,14 @@ public class CpuPanel extends javax.swing.JPanel {
         modoEtiqueta.setText("Modo:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.insets = new java.awt.Insets(2, 2, 2, 2);
         contenedor.add(modoEtiqueta, gridBagConstraints);
 
         modoValor.setText("OS");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.insets = new java.awt.Insets(2, 8, 2, 2);
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         contenedor.add(modoValor, gridBagConstraints);
@@ -150,11 +167,13 @@ public class CpuPanel extends javax.swing.JPanel {
                 procesoValor.setText("Sin proceso");
                 pidValor.setText("--");
                 pcValor.setText("--");
+                marValor.setText("--");
                 totalValor.setText("--");
             } else {
                 procesoValor.setText(pcb.getProcessName());
                 pidValor.setText(String.valueOf(pcb.getProcessId()));
                 pcValor.setText(String.valueOf(pcb.getProgramCounter()));
+                marValor.setText(String.valueOf(pcb.getMemoryAddressRegister()));
                 totalValor.setText(String.valueOf(pcb.getTotalInstructions()));
             }
             cicloValor.setText(String.valueOf(clockCycle));
@@ -173,6 +192,8 @@ public class CpuPanel extends javax.swing.JPanel {
     private javax.swing.JLabel cicloEtiqueta;
     private javax.swing.JLabel cicloValor;
     private javax.swing.JPanel contenedor;
+    private javax.swing.JLabel marEtiqueta;
+    private javax.swing.JLabel marValor;
     private javax.swing.JLabel modoEtiqueta;
     private javax.swing.JLabel modoValor;
     private javax.swing.JLabel pcEtiqueta;

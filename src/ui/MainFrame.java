@@ -4,17 +4,19 @@
  */
 package ui;
 
+import core.CPU;
 import core.OperatingSystem;
 import core.ProcessControlBlock;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import javax.swing.JOptionPane;
 import scheduler.PolicyType;
+import util.IOHandler;
 
 /**
  * Ventana principal del simulador de sistemas operativos.
@@ -25,9 +27,17 @@ import scheduler.PolicyType;
 public class MainFrame extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(MainFrame.class.getName());
-    private static final Map<String, List<ProcessRequest>> SCENARIOS = buildScenarioCatalog();
+    private static final String[] RANDOM_NAME_BASES = {
+        "TAR", "PROC", "TRAB", "OP", "CALC", "LECT", "ESCR", "CONS", "ANAL", "COMP",
+        "EJEC", "PROCES", "CARGA", "DESC", "TRANS", "VAL", "GEN", "ACT", "BUSQ", "ORD"
+    };
+    private static final AtomicInteger RANDOM_NAME_SEQUENCE = new AtomicInteger(1);
     private transient OperatingSystem operatingSystem;
     private final List<ProcessRequest> pendingProcesses = new ArrayList<>();
+    private IOHandler managedIoHandler;
+    private Thread managedIoThread;
+    private CPU managedCpu;
+    private OperatingSystem managedOperatingSystem;
 
     /**
      * Construye la ventana principal del simulador y prepara el layout base.
@@ -42,50 +52,40 @@ public class MainFrame extends javax.swing.JFrame {
      * ADVERTENCIA: no modificar manualmente; el editor de formularios lo regenera.
      */
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Código generado">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         controlsPanel = new ui.ControlsPanel();
-        queuesPanel = new ui.QueuesPanel();
-        cpuPanel = new ui.CpuPanel();
+        centerPanel = new javax.swing.JPanel();
         chartPanel = new ui.ChartPanel();
+        cpuPanel = new ui.CpuPanel();
+        queuesPanel = new ui.QueuesPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Simulador de Sistemas Operativos");
         setMinimumSize(new java.awt.Dimension(1100, 720));
         getContentPane().setLayout(new java.awt.BorderLayout(12, 12));
-
         getContentPane().add(controlsPanel, java.awt.BorderLayout.NORTH);
 
-        javax.swing.JPanel centerPanel = new javax.swing.JPanel();
         centerPanel.setOpaque(false);
         centerPanel.setLayout(new java.awt.GridBagLayout());
-
-        java.awt.GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 0.45;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 8, 8);
-        centerPanel.add(queuesPanel, gridBagConstraints);
-
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 0.55;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(8, 0, 8, 0);
         centerPanel.add(chartPanel, gridBagConstraints);
 
         getContentPane().add(centerPanel, java.awt.BorderLayout.CENTER);
 
-        cpuPanel.setPreferredSize(new java.awt.Dimension(280, 10));
+        cpuPanel.setPreferredSize(new java.awt.Dimension(200, 10));
         getContentPane().add(cpuPanel, java.awt.BorderLayout.EAST);
+        getContentPane().add(queuesPanel, java.awt.BorderLayout.LINE_START);
 
         pack();
-        setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
     /**
@@ -118,9 +118,15 @@ public class MainFrame extends javax.swing.JFrame {
         if (this.operatingSystem == operatingSystem) {
             return;
         }
-        if (this.operatingSystem != null) {
-            this.operatingSystem.setQueueListener(null);
-            this.operatingSystem.setCpuListener(null);
+        OperatingSystem previous = this.operatingSystem;
+        if (previous != null) {
+            previous.setQueueListener(null);
+            previous.setCpuListener(null);
+        }
+        if (previous != null
+                && previous == managedOperatingSystem
+                && operatingSystem != managedOperatingSystem) {
+            shutdownManagedRuntime();
         }
         this.operatingSystem = operatingSystem;
         synchronized (pendingProcesses) {
@@ -134,6 +140,9 @@ public class MainFrame extends javax.swing.JFrame {
                     operatingSystem.getCycleDurationMillis(),
                     operatingSystem.getRoundRobinQuantum(),
                     operatingSystem.getFeedbackQuanta());
+            if (operatingSystem == managedOperatingSystem && managedIoHandler != null) {
+                managedIoHandler.setCycleDurationMillis(operatingSystem.getCycleDurationMillis());
+            }
         } else {
             queuesPanel.updateQueueViews(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
             cpuPanel.updateCpuView(null, 0L, OperatingSystem.CpuMode.OS);
@@ -163,7 +172,7 @@ public class MainFrame extends javax.swing.JFrame {
         controlsPanel.setQuantumChangeListener(this::handleQuantumChanged);
         controlsPanel.setFeedbackQuantumListener(this::handleFeedbackQuantumChanged);
         controlsPanel.setProcessCreationListener(this::handleProcessCreation);
-        controlsPanel.setScenarioLoadListener(this::handleScenarioLoad);
+        controlsPanel.setRandomProcessesListener(this::handleRandomProcessesRequested);
         controlsPanel.setStartListener(this::handleStartRequested);
         controlsPanel.setPauseListener(this::handlePauseRequested);
         controlsPanel.setResetListener(this::handleResetRequested);
@@ -185,6 +194,9 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         operatingSystem.setCycleDurationMillis(cycleDuration);
+        if (operatingSystem == managedOperatingSystem && managedIoHandler != null) {
+            managedIoHandler.setCycleDurationMillis(cycleDuration);
+        }
     }
 
     private void handleQuantumChanged(int quantum) {
@@ -202,7 +214,13 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     private void handleProcessCreation(ControlsPanel.ProcessFormData data) {
-        if (operatingSystem == null || data == null) {
+        if (data == null) {
+            return;
+        }
+        if (operatingSystem == null) {
+            initializeManagedRuntime();
+        }
+        if (operatingSystem == null) {
             return;
         }
         ProcessRequest request = new ProcessRequest(
@@ -221,36 +239,62 @@ public class MainFrame extends javax.swing.JFrame {
         return type != null ? type : PolicyType.FCFS;
     }
 
-    private void handleScenarioLoad(String scenarioName) {
+    /**
+     * Atiende el clic del botón que genera procesos aleatorios y los programa de inmediato.
+     */
+    private void handleRandomProcessesRequested() {
+        if (operatingSystem == null) {
+            initializeManagedRuntime();
+        }
         if (operatingSystem == null) {
             return;
         }
-        List<ProcessRequest> scenario = SCENARIOS.get(scenarioName);
-        if (scenario == null || scenario.isEmpty()) {
-            logger.warning(() -> "No se encontró el escenario: " + scenarioName);
-            return;
+        int baseCycle = (int) Math.max(0L, Math.min(Integer.MAX_VALUE, operatingSystem.getGlobalClockCycle()));
+        List<ProcessRequest> randomProcesses = generateRandomProcesses(20, baseCycle);
+        for (ProcessRequest request : randomProcesses) {
+            scheduleProcess(request);
         }
-        synchronized (pendingProcesses) {
-            pendingProcesses.clear();
-        }
-        long currentCycle = operatingSystem.getGlobalClockCycle();
-        for (ProcessRequest request : scenario) {
-            if (request.arribo <= currentCycle) {
-                createProcessNow(request);
-            } else {
-                synchronized (pendingProcesses) {
-                    pendingProcesses.add(request);
-                }
-            }
-        }
-        logger.info(() -> String.format("Escenario '%s' cargado con %d procesos", scenarioName, scenario.size()));
+        logger.info(() -> String.format("Se agregaron %d procesos aleatorios al simulador", randomProcesses.size()));
         refreshSimulationControls();
+    }
+
+    /**
+     * Genera procesos con atributos aleatorios controlados para diversificar la simulación.
+     * @param count cantidad de procesos a crear
+     * @param baseCycle ciclo mínimo de arribo permitido
+     * @return lista con solicitudes de creación de procesos aleatorios
+     */
+    private List<ProcessRequest> generateRandomProcesses(int count, int baseCycle) {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        List<ProcessRequest> requests = new ArrayList<>(Math.max(0, count));
+        int safeBase = Math.max(0, Math.min(Integer.MAX_VALUE - 50, baseCycle));
+        for (int i = 0; i < count; i++) {
+            String baseName = RANDOM_NAME_BASES[random.nextInt(RANDOM_NAME_BASES.length)];
+            int sequence = RANDOM_NAME_SEQUENCE.getAndIncrement();
+            String nombre = baseName + sequence;
+            int instrucciones = random.nextInt(5, 61);
+            boolean ioBound = random.nextBoolean();
+            int ioCycle = -1;
+            int ioDuration = 0;
+            if (ioBound) {
+                ioCycle = random.nextInt(1, instrucciones);
+                int remaining = Math.max(1, instrucciones - ioCycle);
+                ioDuration = random.nextInt(1, Math.min(remaining + 1, 8));
+            }
+            int arrivalOffset = random.nextInt(0, 30);
+            int arribo = safeBase + arrivalOffset;
+            requests.add(new ProcessRequest(nombre, arribo, instrucciones, ioBound, ioCycle, ioDuration));
+        }
+        return requests;
     }
 
     /**
      * Gestiona la petición de inicio del reloj del simulador.
      */
     private void handleStartRequested() {
+        if (operatingSystem == null) {
+            initializeManagedRuntime();
+        }
         if (operatingSystem == null) {
             showSimulationMessage("No hay un sistema operativo vinculado para iniciar la simulación.", JOptionPane.WARNING_MESSAGE);
             return;
@@ -293,6 +337,9 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         operatingSystem.resetSimulation();
+        if (operatingSystem == managedOperatingSystem) {
+            restartManagedRuntimeComponents();
+        }
         synchronized (pendingProcesses) {
             pendingProcesses.clear();
         }
@@ -335,6 +382,125 @@ public class MainFrame extends javax.swing.JFrame {
             return;
         }
         JOptionPane.showMessageDialog(this, message, "Simulación", messageType);
+    }
+
+    /**
+     * Crea un sistema operativo manejado por la interfaz junto con su CPU e IOHandler.
+     */
+    private void initializeManagedRuntime() {
+        if (operatingSystem != null) {
+            return;
+        }
+        PolicyType desiredPolicy = controlsPanel.getSelectedPolicyType();
+        long desiredSpeed = controlsPanel.getSelectedSpeedMillis();
+        int desiredQuantum = controlsPanel.getSelectedQuantumValue();
+        int[] desiredFeedback = controlsPanel.getSelectedFeedbackQuanta();
+
+        OperatingSystem os = new OperatingSystem();
+        IOHandler handler = new IOHandler(os, desiredSpeed);
+        Thread ioThread = new Thread(handler, "IOHandler-UI");
+        ioThread.setDaemon(true);
+        ioThread.start();
+        CPU cpu = new CPU(os, handler);
+        os.attachCpu(cpu);
+
+        managedOperatingSystem = os;
+        managedIoHandler = handler;
+        managedIoThread = ioThread;
+        managedCpu = cpu;
+
+        bindOperatingSystem(os);
+        applyConfigurationToOperatingSystem(desiredPolicy, desiredSpeed, desiredQuantum, desiredFeedback);
+        refreshSimulationControls();
+    }
+
+    /**
+     * Aplica la configuración deseada del panel de control al sistema operativo administrado.
+     * @param policy política de planificación seleccionada
+     * @param cycleDuration duración de ciclo en milisegundos
+     * @param quantum quantum de Round Robin
+     * @param feedbackQuanta arreglo de quantums para Feedback
+     */
+    private void applyConfigurationToOperatingSystem(PolicyType policy,
+                                                     long cycleDuration,
+                                                     int quantum,
+                                                     int[] feedbackQuanta) {
+        if (operatingSystem == null) {
+            return;
+        }
+        operatingSystem.setCycleDurationMillis(cycleDuration);
+        if (operatingSystem == managedOperatingSystem && managedIoHandler != null) {
+            managedIoHandler.setCycleDurationMillis(cycleDuration);
+        }
+        int[] appliedFeedback = feedbackQuanta;
+        int[] currentFeedback = operatingSystem.getFeedbackQuanta();
+        if (appliedFeedback == null || appliedFeedback.length != currentFeedback.length) {
+            appliedFeedback = currentFeedback;
+        }
+        operatingSystem.setFeedbackQuanta(appliedFeedback);
+        operatingSystem.setRoundRobinQuantum(quantum);
+        operatingSystem.setSchedulingPolicy(policy);
+        controlsPanel.setControlsState(policy, cycleDuration, quantum, appliedFeedback);
+    }
+
+    /**
+     * Reinicia los componentes gestionados de I/O y CPU tras un reinicio del simulador.
+     */
+    private void restartManagedRuntimeComponents() {
+        if (managedOperatingSystem == null || operatingSystem != managedOperatingSystem) {
+            return;
+        }
+        stopManagedIoThread();
+
+        PolicyType desiredPolicy = controlsPanel.getSelectedPolicyType();
+        long desiredSpeed = controlsPanel.getSelectedSpeedMillis();
+        int desiredQuantum = controlsPanel.getSelectedQuantumValue();
+        int[] desiredFeedback = controlsPanel.getSelectedFeedbackQuanta();
+
+        IOHandler handler = new IOHandler(managedOperatingSystem, desiredSpeed);
+        Thread ioThread = new Thread(handler, "IOHandler-UI");
+        ioThread.setDaemon(true);
+        ioThread.start();
+        managedIoHandler = handler;
+        managedIoThread = ioThread;
+        managedCpu = new CPU(managedOperatingSystem, handler);
+        managedOperatingSystem.attachCpu(managedCpu);
+        applyConfigurationToOperatingSystem(desiredPolicy, desiredSpeed, desiredQuantum, desiredFeedback);
+    }
+
+    /**
+     * Detiene el hilo de I/O administrado con una espera acotada.
+     */
+    private void stopManagedIoThread() {
+        if (managedIoHandler != null) {
+            managedIoHandler.stop();
+        }
+        if (managedIoThread != null) {
+            try {
+                managedIoThread.join(500L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                logger.log(Level.WARNING, "Interrupción mientras se detenía el IOHandler", ex);
+            }
+        }
+        managedIoHandler = null;
+        managedIoThread = null;
+    }
+
+    /**
+     * Libera los recursos internos cuando se reemplaza el sistema operativo administrado.
+     */
+    private void shutdownManagedRuntime() {
+        if (managedOperatingSystem == null) {
+            return;
+        }
+        managedOperatingSystem.stopSystemClock();
+        stopManagedIoThread();
+        managedCpu = null;
+        managedOperatingSystem = null;
+        synchronized (pendingProcesses) {
+            pendingProcesses.clear();
+        }
     }
 
     private void scheduleProcess(ProcessRequest request) {
@@ -391,49 +557,6 @@ public class MainFrame extends javax.swing.JFrame {
                 request.arribo));
     }
 
-    private static Map<String, List<ProcessRequest>> buildScenarioCatalog() {
-        Map<String, List<ProcessRequest>> scenarios = new HashMap<>();
-        scenarios.put("FCFS", List.of(
-                new ProcessRequest("FCFS-Largo", 0, 32, false, -1, 0),
-                new ProcessRequest("FCFS-IO-A", 0, 14, true, 4, 3),
-                new ProcessRequest("FCFS-Corto", 1, 6, false, -1, 0),
-                new ProcessRequest("FCFS-IO-B", 1, 9, true, 3, 2),
-                new ProcessRequest("FCFS-Extra-1", 2, 8, false, -1, 0),
-                new ProcessRequest("FCFS-Extra-2", 2, 7, false, -1, 0)));
-        scenarios.put("SPN", List.of(
-                new ProcessRequest("SPN-Base", 0, 20, false, -1, 0),
-                new ProcessRequest("SPN-Corto-IO", 0, 5, true, 2, 2),
-                new ProcessRequest("SPN-Flash", 1, 3, false, -1, 0),
-                new ProcessRequest("SPN-Rapido", 2, 4, false, -1, 0),
-                new ProcessRequest("SPN-Med-IO", 2, 7, true, 2, 3),
-                new ProcessRequest("SPN-Largo", 3, 18, false, -1, 0)));
-        scenarios.put("HRRN", List.of(
-                new ProcessRequest("HRRN-Largo", 0, 28, false, -1, 0),
-                new ProcessRequest("HRRN-Medio", 1, 12, false, -1, 0),
-                new ProcessRequest("HRRN-Corto-A", 6, 5, false, -1, 0),
-                new ProcessRequest("HRRN-Corto-B", 10, 4, false, -1, 0),
-                new ProcessRequest("HRRN-Corto-C", 14, 3, false, -1, 0)));
-        scenarios.put("SRTF", List.of(
-                new ProcessRequest("SRTF-Largo", 0, 30, false, -1, 0),
-                new ProcessRequest("SRTF-IO-1", 1, 11, true, 3, 3),
-                new ProcessRequest("SRTF-Flash", 2, 3, false, -1, 0),
-                new ProcessRequest("SRTF-Medio", 2, 12, false, -1, 0),
-                new ProcessRequest("SRTF-IO-2", 3, 8, true, 2, 2),
-                new ProcessRequest("SRTF-Extra", 3, 5, false, -1, 0)));
-        scenarios.put("Round Robin", List.of(
-                new ProcessRequest("RR-CPU-Pesado", 0, 22, false, -1, 0),
-                new ProcessRequest("RR-IO-1", 0, 13, true, 4, 3),
-                new ProcessRequest("RR-Medio", 1, 12, false, -1, 0),
-                new ProcessRequest("RR-IO-2", 1, 10, true, 3, 2),
-                new ProcessRequest("RR-Ligero", 2, 6, false, -1, 0),
-                new ProcessRequest("RR-Refuerzo", 2, 8, false, -1, 0)));
-        scenarios.put("Feedback", List.of(
-                new ProcessRequest("FB-Largo", 0, 12, false, -1, 0),
-                new ProcessRequest("FB-Corto-A", 0, 4, false, -1, 0),
-                new ProcessRequest("FB-Medio", 1, 6, false, -1, 0)));
-        return scenarios;
-    }
-
     private static final class ProcessRequest {
         final String nombre;
         final int arribo;
@@ -457,10 +580,11 @@ public class MainFrame extends javax.swing.JFrame {
         }
     }
 
-    // Declaración de variables - no modificar//GEN-BEGIN:variables
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel centerPanel;
     private ui.ChartPanel chartPanel;
     private ui.ControlsPanel controlsPanel;
     private ui.CpuPanel cpuPanel;
     private ui.QueuesPanel queuesPanel;
-    // Fin de la declaración de variables//GEN-END:variables
+    // End of variables declaration//GEN-END:variables
 }

@@ -37,7 +37,7 @@ public class QueuesPanel extends javax.swing.JPanel {
      * ADVERTENCIA: no modificar manualmente; el editor de formularios lo regenera.
      */
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Código generado">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         contenedorPrincipal = new javax.swing.JPanel();
@@ -60,10 +60,10 @@ public class QueuesPanel extends javax.swing.JPanel {
 
         setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Colas de Procesos", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, getFont().deriveFont(java.awt.Font.BOLD)));
         setLayout(new java.awt.BorderLayout());
+        setPreferredSize(new java.awt.Dimension(400, 200));
 
         contenedorPrincipal.setOpaque(false);
         contenedorPrincipal.setLayout(new java.awt.GridLayout(1, 4, 12, 0));
-        add(contenedorPrincipal, java.awt.BorderLayout.CENTER);
 
         readyPanel.setOpaque(false);
         readyPanel.setLayout(new java.awt.BorderLayout());
@@ -136,6 +136,8 @@ public class QueuesPanel extends javax.swing.JPanel {
         suspendedPanel.add(suspendedScroll, java.awt.BorderLayout.CENTER);
 
         contenedorPrincipal.add(suspendedPanel);
+
+        add(contenedorPrincipal, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
     public void updateQueueViews(java.util.List<core.ProcessControlBlock> ready,
@@ -201,11 +203,12 @@ public class QueuesPanel extends javax.swing.JPanel {
         String nombre = pcb.getProcessName();
         int pid = pcb.getProcessId();
         int restante = Math.max(0, pcb.getTotalInstructions() - pcb.getProgramCounter());
-        return String.format("%s (PID=%d | Restante=%d)", nombre, pid, restante);
+        String formatted = String.format("%s (PID=%d | Restante=%d)", nombre, pid, restante);
+        return truncateText(formatted, 35);
     }
 
 
-    // Declaración de variables - no modificar//GEN-BEGIN:variables
+    // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel blockedLabel;
     private javax.swing.JList<String> blockedList;
     private javax.swing.JPanel blockedPanel;
@@ -223,5 +226,18 @@ public class QueuesPanel extends javax.swing.JPanel {
     private javax.swing.JList<String> suspendedList;
     private javax.swing.JPanel suspendedPanel;
     private javax.swing.JScrollPane suspendedScroll;
-    // Fin de la declaración de variables//GEN-END:variables
+    // End of variables declaration//GEN-END:variables
+
+    /**
+     * Trunca texto largo para evitar que expanda el panel.
+     * @param text texto original
+     * @param maxLength longitud máxima permitida
+     * @return texto truncado con elipsis si es necesario
+     */
+    private String truncateText(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength - 3) + "...";
+    }
 }

@@ -31,7 +31,7 @@ public class ControlsPanel extends javax.swing.JPanel {
     private transient IntConsumer quantumListener;
     private transient Consumer<int[]> feedbackQuantumListener;
     private transient Consumer<ProcessFormData> processListener;
-    private transient Consumer<String> scenarioListener;
+    private transient Runnable randomProcessesListener;
     private transient Runnable startListener;
     private transient Runnable pauseListener;
     private transient Runnable resetListener;
@@ -53,7 +53,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         feedbackQuantumSpinner3.addChangeListener(evt -> handleFeedbackQuantumChange());
         tipoComboBox.addActionListener(evt -> updateIoInputs());
         crearProcesoButton.addActionListener(evt -> handleCreateProcess());
-        cargarEscenarioButton.addActionListener(evt -> handleLoadScenario());
+        agregarAleatoriosButton.addActionListener(evt -> handleRandomProcessesRequest());
         iniciarButton.addActionListener(evt -> handleStartClick());
         pausarButton.addActionListener(evt -> handlePauseClick());
         reiniciarButton.addActionListener(evt -> handleResetClick());
@@ -92,9 +92,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         pausarButton = new javax.swing.JButton();
         reiniciarButton = new javax.swing.JButton();
         procesosLabel = new javax.swing.JLabel();
-        escenarioLabel = new javax.swing.JLabel();
-        escenarioComboBox = new javax.swing.JComboBox<>();
-        cargarEscenarioButton = new javax.swing.JButton();
+        agregarAleatoriosButton = new javax.swing.JButton();
         nombreLabel = new javax.swing.JLabel();
         nombreTextField = new javax.swing.JTextField();
         arriboLabel = new javax.swing.JLabel();
@@ -259,29 +257,13 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.insets = new java.awt.Insets(18, 0, 8, 0);
         add(procesosLabel, gridBagConstraints);
 
-        escenarioLabel.setText("Escenario:");
+        agregarAleatoriosButton.setText("Agregar 20 aleatorios");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridwidth = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 6);
-        add(escenarioLabel, gridBagConstraints);
-
-        escenarioComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Seleccionar", "FCFS", "SPN", "HRRN", "SRTF", "Round Robin", "Feedback" }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 6;
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.weightx = 1.0;
-        add(escenarioComboBox, gridBagConstraints);
-
-        cargarEscenarioButton.setText("Cargar");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 6;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        add(cargarEscenarioButton, gridBagConstraints);
+        add(agregarAleatoriosButton, gridBagConstraints);
 
         nombreLabel.setText("Nombre:");
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -410,8 +392,12 @@ public class ControlsPanel extends javax.swing.JPanel {
         this.processListener = listener;
     }
 
-    public void setScenarioLoadListener(Consumer<String> listener) {
-        this.scenarioListener = listener;
+    /**
+     * Registra el callback que genera procesos aleatorios en lote.
+     * @param listener acción a ejecutar al presionar el botón de procesos aleatorios
+     */
+    public void setRandomProcessesListener(Runnable listener) {
+        this.randomProcessesListener = listener;
     }
 
     /**
@@ -447,6 +433,39 @@ public class ControlsPanel extends javax.swing.JPanel {
         this.simulationRunning = running;
         this.simulationStarted = started || running;
         updateSimulationButtons();
+    }
+
+    /**
+     * Devuelve la política actualmente seleccionada en el combo.
+     * @return política elegida por el usuario
+     */
+    public PolicyType getSelectedPolicyType() {
+        String selected = Objects.toString(planificadorComboBox.getSelectedItem(), "").trim();
+        return selectionToPolicy(selected);
+    }
+
+    /**
+     * Devuelve la velocidad (ms por ciclo) configurada en el deslizador.
+     * @return duración de ciclo elegida
+     */
+    public long getSelectedSpeedMillis() {
+        return sliderToDuration(velocidadSlider.getValue());
+    }
+
+    /**
+     * Devuelve el quantum configurado para Round Robin.
+     * @return valor numérico del spinner de quantum
+     */
+    public int getSelectedQuantumValue() {
+        return ((Number) quantumSpinner.getValue()).intValue();
+    }
+
+    /**
+     * Devuelve los quantums configurados para los niveles de Feedback.
+     * @return arreglo con los quantums actuales
+     */
+    public int[] getSelectedFeedbackQuanta() {
+        return readFeedbackQuanta();
     }
 
     public void setControlsState(PolicyType policyType, long cycleDurationMs, int quantum) {
@@ -527,19 +546,13 @@ public class ControlsPanel extends javax.swing.JPanel {
         clearProcessForm();
     }
 
-    private void handleLoadScenario() {
-        if (scenarioListener == null) {
-            return;
+    /**
+     * Atiende el clic sobre el botón que genera procesos aleatorios.
+     */
+    private void handleRandomProcessesRequest() {
+        if (randomProcessesListener != null) {
+            randomProcessesListener.run();
         }
-        Object selection = escenarioComboBox.getSelectedItem();
-        if (selection == null) {
-            return;
-        }
-        String scenario = selection.toString();
-        if ("Seleccionar".equalsIgnoreCase(scenario)) {
-            return;
-        }
-        scenarioListener.accept(scenario);
     }
 
     /**
@@ -722,10 +735,8 @@ public class ControlsPanel extends javax.swing.JPanel {
     // Declaración de variables - no modificar//GEN-BEGIN:variables
     private javax.swing.JLabel arriboLabel;
     private javax.swing.JSpinner arriboSpinner;
-    private javax.swing.JButton cargarEscenarioButton;
+    private javax.swing.JButton agregarAleatoriosButton;
     private javax.swing.JButton crearProcesoButton;
-    private javax.swing.JComboBox<String> escenarioComboBox;
-    private javax.swing.JLabel escenarioLabel;
     private javax.swing.JButton iniciarButton;
     private javax.swing.JButton pausarButton;
     private javax.swing.JComboBox<String> planificadorComboBox;

@@ -32,7 +32,7 @@ public class OperatingSystem {
     /** Logger para trazabilidad de cambios de estado. */
     private static final Logger LOGGER = Logger.getLogger(OperatingSystem.class.getName());
     /** Capacidad máxima de procesos residentes en memoria principal. */
-    private static final int MAX_PROCESSES_IN_MEMORY = 4;
+    private static final int MAX_PROCESSES_IN_MEMORY = 25;
     /** Duración por defecto de un ciclo del reloj global en milisegundos. */
     private static final long DEFAULT_CYCLE_DURATION_MILLIS = 100L;
 
