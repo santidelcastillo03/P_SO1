@@ -6,8 +6,8 @@ package scheduler;
 
 import core.ProcessControlBlock;
 import datastructures.CustomQueue;
-import java.util.EnumMap;
-import java.util.Map;
+import datastructures.EnumMap;
+import datastructures.Map;
 import java.util.Objects;
 
 /**
@@ -17,7 +17,7 @@ import java.util.Objects;
 public class Scheduler {
 
     /** Mapa de políticas registradas indexadas por tipo. */
-    private final Map<PolicyType, SchedulingPolicy> registeredPolicies;
+    private final EnumMap<PolicyType, SchedulingPolicy> registeredPolicies;
     /** Política actualmente activa. */
     private SchedulingPolicy activePolicy;
     /** Tipo asociado a la política activa (si proviene del catálogo). */
