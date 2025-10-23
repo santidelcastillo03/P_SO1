@@ -122,14 +122,14 @@ public class ControlsPanel extends javax.swing.JPanel {
         setOpaque(false);
         setLayout(new java.awt.GridBagLayout());
 
-        tituloLabel.setFont(new java.awt.Font("Dialog", 1, 16)); // NOI18N
+        tituloLabel.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
         tituloLabel.setText("Simulador de CPU");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.gridwidth = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 8, 0);
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 4, 0);
         add(tituloLabel, gridBagConstraints);
 
         planificadorLabel.setText("Planificador:");
@@ -166,11 +166,11 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(6, 0, 0, 6);
         add(feedbackLabel, gridBagConstraints);
 
         feedbackPanel.setOpaque(false);
-        feedbackPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        feedbackPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 0));
 
         feedbackNivel0Label.setText("Nivel 0:");
         feedbackPanel.add(feedbackNivel0Label);
@@ -194,7 +194,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridwidth = 3;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(6, 0, 0, 0);
         add(feedbackPanel, gridBagConstraints);
 
         velocidadLabel.setText("Velocidad (ms):");
@@ -202,7 +202,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(6, 0, 0, 6);
         add(velocidadLabel, gridBagConstraints);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
@@ -210,7 +210,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(6, 0, 0, 6);
         add(velocidadSlider, gridBagConstraints);
 
         velocidadValorLabel.setText("100 ms");
@@ -218,7 +218,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 3;
         gridBagConstraints.gridy = 3;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_END;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(6, 0, 0, 0);
         add(velocidadValorLabel, gridBagConstraints);
 
         memoriaLabel.setText("Procesos en memoria:");
@@ -226,7 +226,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(6, 0, 0, 6);
         add(memoriaLabel, gridBagConstraints);
 
         memoriaSpinner.setModel(new SpinnerNumberModel(DEFAULT_MEMORY_LIMIT, MIN_MEMORY_LIMIT, MAX_MEMORY_LIMIT, 1));
@@ -235,38 +235,38 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridy = 4;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(10, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(6, 0, 0, 0);
         add(memoriaSpinner, gridBagConstraints);
 
         iniciarButton.setText("Iniciar");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 5;
-        gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
         add(iniciarButton, gridBagConstraints);
 
         pausarButton.setText("Pausar");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 5;
-        gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
         add(pausarButton, gridBagConstraints);
 
         reiniciarButton.setText("Reiniciar");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 5;
-        gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 0);
         add(reiniciarButton, gridBagConstraints);
 
-        procesosLabel.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
+        procesosLabel.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
         procesosLabel.setText("Crear proceso");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 6;
         gridBagConstraints.gridwidth = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(18, 0, 8, 0);
+        gridBagConstraints.insets = new java.awt.Insets(10, 0, 4, 0);
         add(procesosLabel, gridBagConstraints);
 
         agregarAleatoriosButton.setText("Agregar 20 aleatorios");
@@ -299,13 +299,13 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 9;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 6);
         add(arriboLabel, gridBagConstraints);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 9;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 12);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 12);
         add(arriboSpinner, gridBagConstraints);
 
         instruccionesLabel.setText("Instrucciones:");
@@ -313,13 +313,13 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 6);
         add(instruccionesLabel, gridBagConstraints);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 12);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 12);
         add(instruccionesSpinner, gridBagConstraints);
 
         tipoLabel.setText("Tipo:");
@@ -327,7 +327,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 6);
         add(tipoLabel, gridBagConstraints);
 
         tipoComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CPU bound", "I/O bound" }));
@@ -335,7 +335,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 3;
         gridBagConstraints.gridy = 10;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 0);
         add(tipoComboBox, gridBagConstraints);
 
         ioCycleLabel.setText("Ciclo I/O:");
@@ -343,13 +343,13 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 11;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 6);
         add(ioCycleLabel, gridBagConstraints);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 11;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 12);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 12);
         add(ioCycleSpinner, gridBagConstraints);
 
         ioDurationLabel.setText("Duración I/O:");
@@ -357,13 +357,13 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 11;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 6);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 6);
         add(ioDurationLabel, gridBagConstraints);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3;
         gridBagConstraints.gridy = 11;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(4, 0, 0, 0);
         add(ioDurationSpinner, gridBagConstraints);
 
         crearProcesoButton.setText("Crear proceso");
@@ -372,7 +372,7 @@ public class ControlsPanel extends javax.swing.JPanel {
         gridBagConstraints.gridy = 12;
         gridBagConstraints.gridwidth = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(12, 0, 0, 0);
+        gridBagConstraints.insets = new java.awt.Insets(8, 0, 0, 0);
         add(crearProcesoButton, gridBagConstraints);
     }// </editor-fold>//GEN-END:initComponents
 
