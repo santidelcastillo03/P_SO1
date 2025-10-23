@@ -3,30 +3,7 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/IOHandler.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/CPU.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/OperatingSystem.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/ProcessControlBlock.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/ProcessState.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/CustomQueue.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/Lista.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/Node.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/NodoLista.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Dispatcher.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/FCFS.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/FCFSMetrics.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/PolicyType.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/RoundRobin.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/SPN.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Scheduler.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/SRTF.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/SchedulingPolicy.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/ConfigManager.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/MetricsCalculator.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/ProcessData.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/HRRN.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Feedback.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/p_so1/P_so1.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/NewMainFrame.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/MainFrame.java</file>
         </group>
     </open-files>
