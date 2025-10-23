@@ -21,6 +21,7 @@ import scheduler.PolicyType;
 import scheduler.RoundRobin;
 import scheduler.Scheduler;
 import scheduler.SchedulingPolicy;
+import util.MetricsCalculator;
 
 /**
  * OperatingSystem coordina las transiciones de estado de los procesos y administra
@@ -72,6 +73,8 @@ public class OperatingSystem {
     private int roundRobinQuantum;
     /** Quantums por nivel utilizados cuando Feedback está activo. */
     private int[] feedbackQuanta;
+    /** Componente responsable de calcular las métricas del simulador. */
+    private final MetricsCalculator metricsCalculator;
     private transient QueueListener queueListener;
     private transient CpuListener cpuListener;
 
@@ -97,6 +100,7 @@ public class OperatingSystem {
         this.dispatcher = new Dispatcher();
         this.roundRobinQuantum = RoundRobin.DEFAULT_QUANTUM;
         this.feedbackQuanta = CPU.defaultFeedbackQuanta();
+        this.metricsCalculator = new MetricsCalculator();
     }
 
     /**
@@ -144,6 +148,7 @@ public class OperatingSystem {
                 restoreSuspendedProcessIfPossible();
             }
         }
+        metricsCalculator.registerProcessCompletion(pcb);
         notifyQueueListener();
         notifyCpuListener();
     }
@@ -367,6 +372,14 @@ public class OperatingSystem {
     }
 
     /**
+     * Devuelve el calculador de métricas para consultar indicadores de rendimiento.
+     * @return instancia compartida del calculador de métricas
+     */
+    public MetricsCalculator getMetricsCalculator() {
+        return metricsCalculator;
+    }
+
+    /**
      * Define el quantum que utilizará Round Robin en futuras expropiaciones.
      * @param quantum cantidad de ciclos a asignar a cada proceso
      */
@@ -450,6 +463,9 @@ public class OperatingSystem {
             pcb.setIoExceptionCycle(-1);
             pcb.setIoDuration(0);
         }
+        long creationCycle = globalClockCycle.get();
+        pcb.setCreationCycle(creationCycle);
+        metricsCalculator.registerProcessCreation(pcb, creationCycle);
         moveToReady(pcb);
         return pcb;
     }
@@ -467,6 +483,16 @@ public class OperatingSystem {
 
     public long getCycleDurationMillis() {
         return cycleDurationMillis;
+    }
+
+    /**
+     * Registra el primer ciclo de ejecución de un proceso para calcular tiempos de respuesta.
+     * @param pcb proceso que comienza a ejecutar
+     * @param cycle ciclo global en el que se produjo el primer despacho
+     */
+    void recordProcessFirstExecution(ProcessControlBlock pcb, long cycle) {
+        Objects.requireNonNull(pcb, "El proceso no puede ser nulo");
+        metricsCalculator.registerProcessFirstExecution(pcb, Math.max(0L, cycle));
     }
 
     /**
@@ -580,6 +606,7 @@ public class OperatingSystem {
             }
         }
         globalClockCycle.set(0L);
+        metricsCalculator.reset();
         notifyQueueListener();
         notifyCpuListener();
     }
@@ -676,12 +703,14 @@ public class OperatingSystem {
      * Ejecuta el ciclo de CPU y comprueba si el proceso actual ha finalizado.
      */
     private void runCpuStep() {
-        if (cpu == null) {
-            return;
+        boolean cpuBusy = false;
+        if (cpu != null) {
+            cpuBusy = !cpu.isIdle();
+            cpu.executeCycle();
+            finalizeProcessIfCompleted();
+            notifyCpuListener();
         }
-        cpu.executeCycle();
-        finalizeProcessIfCompleted();
-        notifyCpuListener();
+        metricsCalculator.registerCycle(cpuBusy);
     }
 
     /**
@@ -732,12 +761,16 @@ public class OperatingSystem {
         Objects.requireNonNull(pcb, "El proceso no puede ser nulo");
         synchronized (stateLock) {
             ProcessState previousState = pcb.getProcessState();
+            long currentCycle = globalClockCycle.get();
             adjustMemoryCounters(previousState, targetState);
+            if (previousState == ProcessState.LISTO && targetState != ProcessState.LISTO) {
+                pcb.finalizeReadyQueueWait(currentCycle);
+            } else if (previousState != ProcessState.LISTO && targetState != ProcessState.LISTO) {
+                pcb.clearReadyQueueArrival();
+            }
             pcb.setProcessState(targetState);
             if (targetState == ProcessState.LISTO) {
-                pcb.markReadyQueueArrival(globalClockCycle.get());
-            } else {
-                pcb.clearReadyQueueArrival();
+                pcb.markReadyQueueArrival(currentCycle);
             }
             targetQueue.enqueue(pcb);
             logTransition(pcb, previousState, targetState, targetQueueName);
@@ -765,7 +798,8 @@ public class OperatingSystem {
 
     /**
      * Garantiza la capacidad de memoria suspendiendo candidatos cuando se intenta ingresar
-     * un proceso adicional sin espacio disponible.
+     * un proceso adicional sin espacio disponible. Si no hay candidatos disponibles,
+     * el proceso será puesto en cola de listos y rechazado dinámicamente si es necesario.
      */
     private void ensureCapacity() {
         while (processesInMemory >= maxProcessesInMemory) {
@@ -779,7 +813,10 @@ public class OperatingSystem {
                 suspendCandidate(candidate, ProcessState.BLOQUEADO_SUSPENDIDO, blockedSuspendedQueue, "blockedSuspendedQueue");
                 continue;
             }
-            throw new IllegalStateException("No hay procesos disponibles para suspender y la memoria está llena");
+            // Si no hay procesos para suspender, no hay mucho que hacer.
+            // El proceso será aceptado pero puede haber competencia por recursos.
+            // Esto es mejor que fallar completamente.
+            break;
         }
     }
 
@@ -795,8 +832,12 @@ public class OperatingSystem {
                                   CustomQueue<ProcessControlBlock> targetQueue,
                                   String queueName) {
         ProcessState previousState = candidate.getProcessState();
+        if (previousState == ProcessState.LISTO) {
+            candidate.finalizeReadyQueueWait(globalClockCycle.get());
+        } else {
+            candidate.clearReadyQueueArrival();
+        }
         candidate.setProcessState(suspendedState);
-        candidate.clearReadyQueueArrival();
         targetQueue.enqueue(candidate);
         processesInMemory = Math.max(0, processesInMemory - 1);
         logTransition(candidate, previousState, suspendedState, queueName);

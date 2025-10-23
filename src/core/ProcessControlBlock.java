@@ -55,10 +55,14 @@ public class ProcessControlBlock {
 	private long creationTime;
 	/** Timestamp de finalización del proceso. */
 	private long completionTime;
+	/** Ciclo global en el que el proceso fue creado. */
+	private long creationCycle;
 	/** Ciclo en el que el proceso ingresó a la cola de listos. */
 	private long readyQueueArrivalTime;
 	/** Ciclo en el que el proceso ejecuta por PRIMERA vez en CPU. */
 	private long firstExecutionCycle;
+	/** Tiempo total acumulado esperando en la cola de listos. */
+	private long totalReadyWaitingTime;
 	/** Nivel de prioridad usado por políticas Feedback (0=alta … 3=baja). */
 	private int priorityLevel;
 
@@ -93,8 +97,10 @@ public class ProcessControlBlock {
 		this.ioDuration = 0;
 		this.creationTime = System.currentTimeMillis();
 		this.completionTime = -1L;
+		this.creationCycle = -1L;
 		this.readyQueueArrivalTime = -1L;
 		this.firstExecutionCycle = -1L;
+		this.totalReadyWaitingTime = 0L;
 		this.priorityLevel = 0;
 	}
 
@@ -159,13 +165,32 @@ public class ProcessControlBlock {
 	}
 
 	/**
+	 * Actualiza el tiempo total de espera en ready y elimina la marca de arribo.
+	 * @param cycle ciclo global al que abandona la cola de listos
+	 */
+	public void finalizeReadyQueueWait(long cycle) {
+		if (readyQueueArrivalTime < 0L) {
+			return;
+		}
+		long sanitizedCycle = Math.max(0L, cycle);
+		long accumulated = sanitizedCycle - readyQueueArrivalTime;
+		if (accumulated > 0L) {
+			totalReadyWaitingTime += accumulated;
+		}
+		clearReadyQueueArrival();
+	}
+
+	/**
 	 * Registra el ciclo en el que el proceso ejecuta por PRIMERA vez.
 	 * @param cycle número de ciclo global cuando se carga en CPU por primera vez
+	 * @return true cuando se marca la primera ejecución, false si ya estaba definido
 	 */
-	public void markFirstExecution(long cycle) {
+	public boolean markFirstExecution(long cycle) {
 		if (firstExecutionCycle < 0) {
 			firstExecutionCycle = Math.max(0L, cycle);
+			return true;
 		}
+		return false;
 	}
 
 	/**
@@ -204,6 +229,30 @@ public class ProcessControlBlock {
 	 */
 	public long getReadyQueueArrivalTime() {
 		return readyQueueArrivalTime;
+	}
+
+	/**
+	 * Define el ciclo global en el que se creó el proceso dentro del simulador.
+	 * @param creationCycle ciclo global registrado al momento de la creación
+	 */
+	public void setCreationCycle(long creationCycle) {
+		this.creationCycle = Math.max(0L, creationCycle);
+	}
+
+	/**
+	 * Devuelve el ciclo global en el que se originó el proceso.
+	 * @return ciclo de creación almacenado
+	 */
+	public long getCreationCycle() {
+		return creationCycle;
+	}
+
+	/**
+	 * Obtiene el tiempo total acumulado en espera dentro de la cola ready.
+	 * @return tiempo de espera expresado en ciclos
+	 */
+	public long getTotalReadyWaitingTime() {
+		return totalReadyWaitingTime;
 	}
 
 

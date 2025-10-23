@@ -144,10 +144,14 @@ public class CPU {
         Objects.requireNonNull(pcb, "El proceso a cargar no puede ser nulo");
         this.currentProcess = pcb;
         this.cyclesExecutedByCurrentProcess = 0;
-        pcb.clearReadyQueueArrival();
+        long currentCycle = operatingSystem != null ? operatingSystem.getGlobalClockCycle() : 0L;
+        pcb.finalizeReadyQueueWait(currentCycle);
         pcb.setProcessState(ProcessState.EJECUCION);
         // ⭐ Registrar ciclo de primer inicio si aún no se ha marcado
-        pcb.markFirstExecution(operatingSystem.getGlobalClockCycle());
+        boolean firstExecution = pcb.markFirstExecution(currentCycle);
+        if (firstExecution && operatingSystem != null) {
+            operatingSystem.recordProcessFirstExecution(pcb, currentCycle);
+        }
         LOGGER.info(() -> String.format("Proceso %s (#%d) cargado en CPU",
                 pcb.getProcessName(),
                 pcb.getProcessId()));

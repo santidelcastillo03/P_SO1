@@ -129,6 +129,7 @@ public class MainFrame extends javax.swing.JFrame {
             shutdownManagedRuntime();
         }
         this.operatingSystem = operatingSystem;
+        chartPanel.bindOperatingSystem(operatingSystem);
         synchronized (pendingProcesses) {
             pendingProcesses.clear();
         }
@@ -165,6 +166,7 @@ public class MainFrame extends javax.swing.JFrame {
                                  OperatingSystem.CpuMode mode) {
         releasePendingProcesses(clockCycle);
         cpuPanel.updateCpuView(current, clockCycle, mode);
+        chartPanel.registerMetricsSample(clockCycle);
     }
 
     private void setupControlBindings() {
@@ -358,6 +360,7 @@ public class MainFrame extends javax.swing.JFrame {
         if (operatingSystem == managedOperatingSystem) {
             restartManagedRuntimeComponents();
         }
+        chartPanel.bindOperatingSystem(operatingSystem);
         synchronized (pendingProcesses) {
             pendingProcesses.clear();
         }
