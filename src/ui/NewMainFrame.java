@@ -87,13 +87,13 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel35 = new javax.swing.JLabel();
         jLabel36 = new javax.swing.JLabel();
         jScrollPane6 = new javax.swing.JScrollPane();
-        jTextField1 = new javax.swing.JTextField();
+        jList1 = new javax.swing.JList<>();
         jScrollPane7 = new javax.swing.JScrollPane();
-        jTextField2 = new javax.swing.JTextField();
+        jList2 = new javax.swing.JList<>();
         jScrollPane8 = new javax.swing.JScrollPane();
-        jTextField3 = new javax.swing.JTextField();
+        jList3 = new javax.swing.JList<>();
         jScrollPane9 = new javax.swing.JScrollPane();
-        jTextField4 = new javax.swing.JTextField();
+        jList4 = new javax.swing.JList<>();
         jPanel1 = new javax.swing.JPanel();
         saveFile = new javax.swing.JButton();
         loadFile = new javax.swing.JButton();
@@ -327,23 +327,39 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel36.setText("Bloqueados");
         QueuesPanel.add(jLabel36, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 30, 110, -1));
 
-        jTextField1.setText("jTextField1");
-        jScrollPane6.setViewportView(jTextField1);
+        jList1.setModel(new javax.swing.AbstractListModel<String>() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public String getElementAt(int i) { return strings[i]; }
+        });
+        jScrollPane6.setViewportView(jList1);
 
         QueuesPanel.add(jScrollPane6, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, 100, 160));
 
-        jTextField2.setText("jTextField2");
-        jScrollPane7.setViewportView(jTextField2);
+        jList2.setModel(new javax.swing.AbstractListModel<String>() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public String getElementAt(int i) { return strings[i]; }
+        });
+        jScrollPane7.setViewportView(jList2);
 
         QueuesPanel.add(jScrollPane7, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 60, 100, 160));
 
-        jTextField3.setText("jTextField3");
-        jScrollPane8.setViewportView(jTextField3);
+        jList3.setModel(new javax.swing.AbstractListModel<String>() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public String getElementAt(int i) { return strings[i]; }
+        });
+        jScrollPane8.setViewportView(jList3);
 
         QueuesPanel.add(jScrollPane8, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 60, 100, 160));
 
-        jTextField4.setText("jTextField4");
-        jScrollPane9.setViewportView(jTextField4);
+        jList4.setModel(new javax.swing.AbstractListModel<String>() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public String getElementAt(int i) { return strings[i]; }
+        });
+        jScrollPane9.setViewportView(jList4);
 
         QueuesPanel.add(jScrollPane9, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 60, 100, 160));
 
@@ -505,6 +521,10 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
+    private javax.swing.JList<String> jList1;
+    private javax.swing.JList<String> jList2;
+    private javax.swing.JList<String> jList3;
+    private javax.swing.JList<String> jList4;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JScrollPane jScrollPane6;
@@ -513,10 +533,6 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane9;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTextArea jTextArea1;
-    private javax.swing.JTextField jTextField1;
-    private javax.swing.JTextField jTextField2;
-    private javax.swing.JTextField jTextField3;
-    private javax.swing.JTextField jTextField4;
     private javax.swing.JSpinner level0Spinner;
     private javax.swing.JSpinner level1Spinner;
     private javax.swing.JSpinner level2Spinner;
