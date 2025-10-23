@@ -28,7 +28,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
-        jPanel5 = new javax.swing.JPanel();
+        ControlsPanel = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
         jComboBox1 = new javax.swing.JComboBox<>();
@@ -65,7 +65,7 @@ public class MainFrame extends javax.swing.JFrame {
         jLabel18 = new javax.swing.JLabel();
         jComboBox2 = new javax.swing.JComboBox<>();
         jSpinner10 = new javax.swing.JSpinner();
-        jPanel6 = new javax.swing.JPanel();
+        CpuPanel = new javax.swing.JPanel();
         jLabel19 = new javax.swing.JLabel();
         jLabel20 = new javax.swing.JLabel();
         jLabel21 = new javax.swing.JLabel();
@@ -80,7 +80,7 @@ public class MainFrame extends javax.swing.JFrame {
         jLabel30 = new javax.swing.JLabel();
         jLabel31 = new javax.swing.JLabel();
         jLabel32 = new javax.swing.JLabel();
-        jPanel7 = new javax.swing.JPanel();
+        QueuesPanel = new javax.swing.JPanel();
         jLabel33 = new javax.swing.JLabel();
         jLabel34 = new javax.swing.JLabel();
         jLabel35 = new javax.swing.JLabel();
@@ -101,74 +101,74 @@ public class MainFrame extends javax.swing.JFrame {
         jPanel1.setBackground(new java.awt.Color(53, 73, 133));
         jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jPanel5.setBackground(new java.awt.Color(53, 73, 133));
-        jPanel5.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Controles", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 12), new java.awt.Color(255, 255, 255))); // NOI18N
-        jPanel5.setForeground(new java.awt.Color(255, 255, 255));
-        jPanel5.setOpaque(false);
-        jPanel5.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        ControlsPanel.setBackground(new java.awt.Color(53, 73, 133));
+        ControlsPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Controles", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 12), new java.awt.Color(255, 255, 255))); // NOI18N
+        ControlsPanel.setForeground(new java.awt.Color(255, 255, 255));
+        ControlsPanel.setOpaque(false);
+        ControlsPanel.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel2.setForeground(new java.awt.Color(255, 255, 255));
         jLabel2.setText("Simulador de CPU");
-        jPanel5.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 20, -1, -1));
+        ControlsPanel.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 20, -1, -1));
 
         jLabel1.setForeground(new java.awt.Color(255, 255, 255));
         jLabel1.setText("Planificador:");
-        jPanel5.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 50, 70, 20));
+        ControlsPanel.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 50, 70, 20));
 
         jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        jPanel5.add(jComboBox1, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 50, 690, -1));
+        ControlsPanel.add(jComboBox1, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 50, 690, -1));
 
         jLabel3.setForeground(new java.awt.Color(255, 255, 255));
         jLabel3.setText("Quantum:");
-        jPanel5.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 50, 60, 20));
-        jPanel5.add(jSpinner1, new org.netbeans.lib.awtextra.AbsoluteConstraints(890, 50, 60, -1));
+        ControlsPanel.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 50, 60, 20));
+        ControlsPanel.add(jSpinner1, new org.netbeans.lib.awtextra.AbsoluteConstraints(890, 50, 60, -1));
 
         jLabel4.setForeground(new java.awt.Color(255, 255, 255));
         jLabel4.setText("Feedback:");
-        jPanel5.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 80, -1, -1));
+        ControlsPanel.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 80, -1, -1));
 
         jLabel5.setForeground(new java.awt.Color(255, 255, 255));
         jLabel5.setText("Nivel 0:");
-        jPanel5.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 80, 40, 20));
-        jPanel5.add(jSpinner2, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 80, 60, -1));
+        ControlsPanel.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 80, 40, 20));
+        ControlsPanel.add(jSpinner2, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 80, 60, -1));
 
         jLabel6.setForeground(new java.awt.Color(255, 255, 255));
         jLabel6.setText("Nivel 1:");
-        jPanel5.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 80, 40, 20));
-        jPanel5.add(jSpinner3, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 80, 60, -1));
+        ControlsPanel.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 80, 40, 20));
+        ControlsPanel.add(jSpinner3, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 80, 60, -1));
 
         jLabel7.setForeground(new java.awt.Color(255, 255, 255));
         jLabel7.setText("Nivel 2:");
-        jPanel5.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 80, 40, 20));
-        jPanel5.add(jSpinner4, new org.netbeans.lib.awtextra.AbsoluteConstraints(400, 80, 60, -1));
+        ControlsPanel.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 80, 40, 20));
+        ControlsPanel.add(jSpinner4, new org.netbeans.lib.awtextra.AbsoluteConstraints(400, 80, 60, -1));
 
         jLabel8.setForeground(new java.awt.Color(255, 255, 255));
         jLabel8.setText("Nivel 3:");
-        jPanel5.add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 80, 40, 20));
-        jPanel5.add(jSpinner5, new org.netbeans.lib.awtextra.AbsoluteConstraints(530, 80, 60, -1));
+        ControlsPanel.add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 80, 40, 20));
+        ControlsPanel.add(jSpinner5, new org.netbeans.lib.awtextra.AbsoluteConstraints(530, 80, 60, -1));
 
         jLabel9.setForeground(new java.awt.Color(255, 255, 255));
         jLabel9.setText("Velocidad (ms):");
-        jPanel5.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 110, 90, 20));
-        jPanel5.add(jSlider1, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 110, 670, -1));
+        ControlsPanel.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 110, 90, 20));
+        ControlsPanel.add(jSlider1, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 110, 670, -1));
 
         jLabel10.setForeground(new java.awt.Color(255, 255, 255));
         jLabel10.setText("-- ms");
-        jPanel5.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 110, 50, 20));
+        ControlsPanel.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 110, 50, 20));
 
         jLabel11.setForeground(new java.awt.Color(255, 255, 255));
         jLabel11.setText("Procesos en memoria:");
-        jPanel5.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 140, -1, -1));
-        jPanel5.add(jSpinner6, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 140, -1, -1));
+        ControlsPanel.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 140, -1, -1));
+        ControlsPanel.add(jSpinner6, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 140, -1, -1));
 
         jButton1.setText("Pausar");
         jButton1.setPreferredSize(new java.awt.Dimension(73, 23));
-        jPanel5.add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 180, -1, -1));
+        ControlsPanel.add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 180, -1, -1));
 
         jButton2.setText("Iniciar");
         jButton2.setPreferredSize(new java.awt.Dimension(73, 23));
-        jPanel5.add(jButton2, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 180, -1, -1));
+        ControlsPanel.add(jButton2, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 180, -1, -1));
 
         jButton3.setText("Reiniciar");
         jButton3.setMaximumSize(new java.awt.Dimension(72, 23));
@@ -178,32 +178,32 @@ public class MainFrame extends javax.swing.JFrame {
                 jButton3ActionPerformed(evt);
             }
         });
-        jPanel5.add(jButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(770, 180, -1, -1));
+        ControlsPanel.add(jButton3, new org.netbeans.lib.awtextra.AbsoluteConstraints(770, 180, -1, -1));
 
         jLabel12.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel12.setForeground(new java.awt.Color(255, 255, 255));
         jLabel12.setText("Crear Proceso");
-        jPanel5.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 210, 90, 30));
+        ControlsPanel.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 210, 90, 30));
 
         jLabel13.setForeground(new java.awt.Color(255, 255, 255));
         jLabel13.setText("Nombre:");
-        jPanel5.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 240, 50, 20));
-        jPanel5.add(jTextField1, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 240, 490, -1));
+        ControlsPanel.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 240, 50, 20));
+        ControlsPanel.add(jTextField1, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 240, 490, -1));
 
         jLabel14.setForeground(new java.awt.Color(255, 255, 255));
         jLabel14.setText("Arribo (ciclo):");
-        jPanel5.add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 270, 70, 20));
-        jPanel5.add(jSpinner7, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 270, 80, -1));
+        ControlsPanel.add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 270, 70, 20));
+        ControlsPanel.add(jSpinner7, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 270, 80, -1));
 
         jLabel15.setForeground(new java.awt.Color(255, 255, 255));
         jLabel15.setText("Instrucciones:");
-        jPanel5.add(jLabel15, new org.netbeans.lib.awtextra.AbsoluteConstraints(210, 270, 80, 20));
-        jPanel5.add(jSpinner8, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 270, 80, -1));
+        ControlsPanel.add(jLabel15, new org.netbeans.lib.awtextra.AbsoluteConstraints(210, 270, 80, 20));
+        ControlsPanel.add(jSpinner8, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 270, 80, -1));
 
         jLabel16.setForeground(new java.awt.Color(255, 255, 255));
         jLabel16.setText("Ciclo I/O:");
-        jPanel5.add(jLabel16, new org.netbeans.lib.awtextra.AbsoluteConstraints(400, 270, 50, 20));
-        jPanel5.add(jSpinner9, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 270, 90, -1));
+        ControlsPanel.add(jLabel16, new org.netbeans.lib.awtextra.AbsoluteConstraints(400, 270, 50, 20));
+        ControlsPanel.add(jSpinner9, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 270, 90, -1));
 
         jButton4.setText("Crear Proceso");
         jButton4.addActionListener(new java.awt.event.ActionListener() {
@@ -211,129 +211,129 @@ public class MainFrame extends javax.swing.JFrame {
                 jButton4ActionPerformed(evt);
             }
         });
-        jPanel5.add(jButton4, new org.netbeans.lib.awtextra.AbsoluteConstraints(240, 307, 110, -1));
+        ControlsPanel.add(jButton4, new org.netbeans.lib.awtextra.AbsoluteConstraints(240, 307, 110, -1));
 
         jLabel17.setForeground(new java.awt.Color(255, 255, 255));
         jLabel17.setText("Tipo:");
-        jPanel5.add(jLabel17, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 270, 80, 20));
+        ControlsPanel.add(jLabel17, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 270, 80, 20));
 
         jLabel18.setForeground(new java.awt.Color(255, 255, 255));
         jLabel18.setText("Duracion I/O:");
-        jPanel5.add(jLabel18, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 300, 80, 20));
+        ControlsPanel.add(jLabel18, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 300, 80, 20));
 
         jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        jPanel5.add(jComboBox2, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 270, 130, -1));
-        jPanel5.add(jSpinner10, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 300, 130, -1));
+        ControlsPanel.add(jComboBox2, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 270, 130, -1));
+        ControlsPanel.add(jSpinner10, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 300, 130, -1));
 
-        jPanel1.add(jPanel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 1030, 350));
+        jPanel1.add(ControlsPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 1030, 350));
 
-        jPanel6.setBackground(new java.awt.Color(53, 73, 133));
-        jPanel6.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CPU", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 12), new java.awt.Color(255, 255, 255))); // NOI18N
-        jPanel6.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        CpuPanel.setBackground(new java.awt.Color(53, 73, 133));
+        CpuPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "CPU", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 12), new java.awt.Color(255, 255, 255))); // NOI18N
+        CpuPanel.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel19.setForeground(new java.awt.Color(255, 255, 255));
         jLabel19.setText("Proceso:");
-        jPanel6.add(jLabel19, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 30, -1, -1));
+        CpuPanel.add(jLabel19, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 30, -1, -1));
 
         jLabel20.setForeground(new java.awt.Color(255, 255, 255));
         jLabel20.setText("ID:");
-        jPanel6.add(jLabel20, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 60, -1, -1));
+        CpuPanel.add(jLabel20, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 60, -1, -1));
 
         jLabel21.setForeground(new java.awt.Color(255, 255, 255));
         jLabel21.setText("PC:");
-        jPanel6.add(jLabel21, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 90, -1, -1));
+        CpuPanel.add(jLabel21, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 90, -1, -1));
 
         jLabel22.setForeground(new java.awt.Color(255, 255, 255));
         jLabel22.setText("MAR:");
-        jPanel6.add(jLabel22, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 120, -1, -1));
+        CpuPanel.add(jLabel22, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 120, -1, -1));
 
         jLabel23.setForeground(new java.awt.Color(255, 255, 255));
         jLabel23.setText("Total:");
-        jPanel6.add(jLabel23, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 150, -1, -1));
+        CpuPanel.add(jLabel23, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 150, -1, -1));
 
         jLabel24.setForeground(new java.awt.Color(255, 255, 255));
         jLabel24.setText("Ciclo actual:");
-        jPanel6.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 180, -1, -1));
+        CpuPanel.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 180, -1, -1));
 
         jLabel25.setForeground(new java.awt.Color(255, 255, 255));
         jLabel25.setText("Modo:");
-        jPanel6.add(jLabel25, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 210, -1, -1));
+        CpuPanel.add(jLabel25, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 210, -1, -1));
 
         jLabel26.setForeground(new java.awt.Color(255, 255, 255));
         jLabel26.setText("0");
-        jPanel6.add(jLabel26, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 180, 60, -1));
+        CpuPanel.add(jLabel26, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 180, 60, -1));
 
         jLabel27.setForeground(new java.awt.Color(255, 255, 255));
         jLabel27.setText("OS");
-        jPanel6.add(jLabel27, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 210, 60, -1));
+        CpuPanel.add(jLabel27, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 210, 60, -1));
 
         jLabel28.setForeground(new java.awt.Color(255, 255, 255));
         jLabel28.setText("--");
-        jPanel6.add(jLabel28, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 150, 60, -1));
+        CpuPanel.add(jLabel28, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 150, 60, -1));
 
         jLabel29.setForeground(new java.awt.Color(255, 255, 255));
         jLabel29.setText("--");
-        jPanel6.add(jLabel29, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 120, 60, -1));
+        CpuPanel.add(jLabel29, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 120, 60, -1));
 
         jLabel30.setForeground(new java.awt.Color(255, 255, 255));
         jLabel30.setText("--");
-        jPanel6.add(jLabel30, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 90, 60, -1));
+        CpuPanel.add(jLabel30, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 90, 60, -1));
 
         jLabel31.setForeground(new java.awt.Color(255, 255, 255));
         jLabel31.setText("--");
-        jPanel6.add(jLabel31, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 60, 60, -1));
+        CpuPanel.add(jLabel31, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 60, 60, -1));
 
         jLabel32.setForeground(new java.awt.Color(255, 255, 255));
         jLabel32.setText("N/A");
-        jPanel6.add(jLabel32, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 30, 60, -1));
+        CpuPanel.add(jLabel32, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 30, 60, -1));
 
-        jPanel1.add(jPanel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(860, 370, 180, 240));
+        jPanel1.add(CpuPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(860, 370, 180, 240));
 
-        jPanel7.setBackground(new java.awt.Color(53, 73, 133));
-        jPanel7.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Colas de Procesos", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 12), new java.awt.Color(255, 255, 255))); // NOI18N
-        jPanel7.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        QueuesPanel.setBackground(new java.awt.Color(53, 73, 133));
+        QueuesPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Colas de Procesos", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI", 1, 12), new java.awt.Color(255, 255, 255))); // NOI18N
+        QueuesPanel.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel33.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel33.setForeground(new java.awt.Color(255, 255, 255));
         jLabel33.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel33.setText("Listos");
-        jPanel7.add(jLabel33, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 30, 110, -1));
+        QueuesPanel.add(jLabel33, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 30, 110, -1));
 
         jLabel34.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel34.setForeground(new java.awt.Color(255, 255, 255));
         jLabel34.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel34.setText("Suspendidos");
-        jPanel7.add(jLabel34, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 30, 110, -1));
+        QueuesPanel.add(jLabel34, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 30, 110, -1));
 
         jLabel35.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel35.setForeground(new java.awt.Color(255, 255, 255));
         jLabel35.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel35.setText("Terminados");
-        jPanel7.add(jLabel35, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 30, 110, -1));
+        QueuesPanel.add(jLabel35, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 30, 110, -1));
 
         jLabel36.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel36.setForeground(new java.awt.Color(255, 255, 255));
         jLabel36.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel36.setText("Bloqueados");
-        jPanel7.add(jLabel36, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 30, 110, -1));
+        QueuesPanel.add(jLabel36, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 30, 110, -1));
 
         jScrollPane1.setViewportView(jList1);
 
-        jPanel7.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 50, 110, 170));
+        QueuesPanel.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 50, 110, 170));
 
         jScrollPane2.setViewportView(jList2);
 
-        jPanel7.add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 50, 110, 170));
+        QueuesPanel.add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 50, 110, 170));
 
         jScrollPane3.setViewportView(jList3);
 
-        jPanel7.add(jScrollPane3, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 50, 110, 170));
+        QueuesPanel.add(jScrollPane3, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 50, 110, 170));
 
         jScrollPane4.setViewportView(jList4);
 
-        jPanel7.add(jScrollPane4, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 50, 110, 170));
+        QueuesPanel.add(jScrollPane4, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 50, 110, 170));
 
-        jPanel1.add(jPanel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 370, 500, 230));
+        jPanel1.add(QueuesPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 370, 500, 230));
 
         jTabbedPane1.addTab("Simulacion", jPanel1);
 
@@ -404,6 +404,9 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel ControlsPanel;
+    private javax.swing.JPanel CpuPanel;
+    private javax.swing.JPanel QueuesPanel;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
@@ -453,9 +456,6 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
-    private javax.swing.JPanel jPanel5;
-    private javax.swing.JPanel jPanel6;
-    private javax.swing.JPanel jPanel7;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
