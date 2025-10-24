@@ -4,17 +4,7 @@
  */
 package p_so1;
 
-import core.CPU;
-import core.OperatingSystem;
-import core.ProcessControlBlock;
-import scheduler.PolicyType;
-import util.IOHandler;
-import java.text.MessageFormat;
-import java.util.Scanner;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
+import ui.NewMainFrame;
 
 /*
  * Simulador Interactivo de Algoritmos de Planificación de Procesos.
@@ -797,7 +787,6 @@ public class P_so1 {
                     // Se ignora el fallo de formato y se usa el mensaje base
                 }
             }
-            return mensaje != null ? mensaje : "";
-        }
+        });
     }
 }

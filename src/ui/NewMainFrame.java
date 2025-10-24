@@ -10,10 +10,16 @@ import core.ProcessControlBlock;
 import scheduler.PolicyType;
 import util.IOHandler;
 import util.RandomProcessGenerator;
+import util.LogCapture;
+import util.ConfigManager;
+import util.ProcessData;
 import datastructures.ArrayList;
+import java.io.File;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
  *
@@ -40,6 +46,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private boolean internalPolicyUpdate;
     private ArrayList<PendingProcess> pendingProcesses;
     private RandomProcessGenerator processGenerator;
+    private LogCapture logCapture;
     private static final String[] POLICY_OPTIONS = {
         "FCFS",
         "Round Robin",
@@ -57,6 +64,8 @@ public class NewMainFrame extends javax.swing.JFrame {
         processGenerator = new RandomProcessGenerator();
         initializeSimulationComponents();
         initComponents();
+        logCapture = new LogCapture(logTextArea);
+        logCapture.start();
         configureSpinners();
         configurePolicySelector();
         configureSpeedSlider();
@@ -378,7 +387,7 @@ public class NewMainFrame extends javax.swing.JFrame {
 
     /**
      * Bucle principal del actualizador de UI que se ejecuta en un hilo separado.
-     * Refresca la interfaz cada 100ms mientras el reloj del sistema operativo
+     * Refresca la interfaz cada 50ms mientras el reloj del sistema operativo
      * esté activo. Usa SwingUtilities.invokeLater para asegurar que las
      * actualizaciones de la UI ocurran en el Event Dispatch Thread (EDT).
      */
@@ -389,7 +398,7 @@ public class NewMainFrame extends javax.swing.JFrame {
                 // Programa la actualización de la UI en el Event Dispatch Thread
                 // Esto es necesario porque Swing no es thread-safe
                 javax.swing.SwingUtilities.invokeLater(this::updateCPUPanel);
-                // Espera 100ms antes de la próxima actualización
+                // Espera 50ms antes de la próxima actualización
                 Thread.sleep(50L);
             } catch (InterruptedException ex) {
                 // Si el hilo es interrumpido, restaura el estado de interrupción y sale
@@ -598,6 +607,84 @@ public class NewMainFrame extends javax.swing.JFrame {
         }
     }
 
+    private ArrayList<ProcessData> collectAllProcesses() {
+        ArrayList<ProcessData> processDataList = new ArrayList<>();
+
+        synchronized (pendingProcesses) {
+            for (int i = 0; i < pendingProcesses.size(); i++) {
+                PendingProcess pp = pendingProcesses.get(i);
+                ProcessControlBlock pcb = pp.pcb;
+                ProcessData pd = new ProcessData(
+                    pcb.getProcessName(),
+                    pcb.getTotalInstructions(),
+                    pcb.isIOBound(),
+                    pcb.getIoExceptionCycle(),
+                    pcb.getIoDuration(),
+                    pp.arrivalCycle
+                );
+                processDataList.add(pd);
+            }
+        }
+
+        ProcessControlBlock[] readyProcesses = operatingSystem.getReadyQueueSnapshot();
+        for (int i = 0; i < readyProcesses.length; i++) {
+            ProcessControlBlock pcb = readyProcesses[i];
+            ProcessData pd = new ProcessData(
+                pcb.getProcessName(),
+                pcb.getTotalInstructions(),
+                pcb.isIOBound(),
+                pcb.getIoExceptionCycle(),
+                pcb.getIoDuration(),
+                0
+            );
+            processDataList.add(pd);
+        }
+
+        ProcessControlBlock[] blockedProcesses = operatingSystem.getBlockedQueueSnapshot();
+        for (int i = 0; i < blockedProcesses.length; i++) {
+            ProcessControlBlock pcb = blockedProcesses[i];
+            ProcessData pd = new ProcessData(
+                pcb.getProcessName(),
+                pcb.getTotalInstructions(),
+                pcb.isIOBound(),
+                pcb.getIoExceptionCycle(),
+                pcb.getIoDuration(),
+                0
+            );
+            processDataList.add(pd);
+        }
+
+        ProcessControlBlock[] finishedProcesses = operatingSystem.getFinishedQueueSnapshot();
+        for (int i = 0; i < finishedProcesses.length; i++) {
+            ProcessControlBlock pcb = finishedProcesses[i];
+            ProcessData pd = new ProcessData(
+                pcb.getProcessName(),
+                pcb.getTotalInstructions(),
+                pcb.isIOBound(),
+                pcb.getIoExceptionCycle(),
+                pcb.getIoDuration(),
+                0
+            );
+            processDataList.add(pd);
+        }
+
+        ProcessControlBlock[] suspendedProcesses = operatingSystem.getSuspendedQueuesSnapshot();
+        for (int i = 0; i < suspendedProcesses.length; i++) {
+            ProcessControlBlock pcb = suspendedProcesses[i];
+            ProcessData pd = new ProcessData(
+                pcb.getProcessName(),
+                pcb.getTotalInstructions(),
+                pcb.isIOBound(),
+                pcb.getIoExceptionCycle(),
+                pcb.getIoDuration(),
+                0
+            );
+            processDataList.add(pd);
+        }
+
+        return processDataList;
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -678,7 +765,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         loadFile = new javax.swing.JButton();
         Logs = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        logList = new javax.swing.JList<>();
+        logTextArea = new javax.swing.JTextArea();
         Charts = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -991,16 +1078,13 @@ public class NewMainFrame extends javax.swing.JFrame {
         Logs.setBackground(new java.awt.Color(53, 73, 133));
         Logs.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        logList.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
-        jScrollPane1.setViewportView(logList);
+        logTextArea.setColumns(20);
+        logTextArea.setRows(5);
+        jScrollPane1.setViewportView(logTextArea);
 
         Logs.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 30, 970, 540));
 
-        jTabbedPane1.addTab("Configuracion", Logs);
+        jTabbedPane1.addTab("Logs", Logs);
 
         Charts.setBackground(new java.awt.Color(53, 73, 133));
         Charts.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -1020,7 +1104,102 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_restartBtnActionPerformed
 
     private void loadFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadFileActionPerformed
-        // TODO add your handling code here:
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Cargar Configuración");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos JSON (*.json)", "json");
+        fileChooser.setFileFilter(filter);
+
+        int userSelection = fileChooser.showOpenDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToLoad = fileChooser.getSelectedFile();
+
+            try {
+                ConfigManager.SimulationConfig config = ConfigManager.load(fileToLoad);
+
+                // Reiniciar primero, ANTES de cargar los procesos
+                restartSimulation();
+
+                // Ahora configurar la duración del ciclo
+                operatingSystem.setCycleDurationMillis(config.getCycleDurationMillis());
+                speedSlider.setValue((int) config.getCycleDurationMillis());
+                updateSpeedLabel((int) config.getCycleDurationMillis());
+
+                ArrayList<ProcessData> processes = config.getProcesses();
+
+                // Encontrar el ciclo mínimo de arribo para ajustar relativamente
+                long minArrivalCycle = Long.MAX_VALUE;
+                for (int i = 0; i < processes.size(); i++) {
+                    long arrival = processes.get(i).getArrivalCycle();
+                    if (arrival < minArrivalCycle) {
+                        minArrivalCycle = arrival;
+                    }
+                }
+                if (minArrivalCycle == Long.MAX_VALUE) {
+                    minArrivalCycle = 0;
+                }
+
+                int processCounter = 1;
+                for (int i = 0; i < processes.size(); i++) {
+                    ProcessData pd = processes.get(i);
+                    String processName = pd.getProcessName();
+                    if (processName == null || processName.isEmpty()) {
+                        processName = "Proceso-" + processCounter++;
+                    }
+
+                    ProcessControlBlock pcb = new ProcessControlBlock(processName);
+                    pcb.setTotalInstructions(pd.getTotalInstructions());
+                    pcb.setIOBound(pd.isIOBound());
+                    if (pd.isIOBound()) {
+                        pcb.setIoExceptionCycle(pd.getIoExceptionCycle());
+                        pcb.setIoDuration(pd.getIoDuration());
+                    }
+
+                    // Ajustar el ciclo de arribo para que sea relativo al inicio (restar el mínimo)
+                    long adjustedArrival = pd.getArrivalCycle() - minArrivalCycle;
+
+                    // Si el arribo es 0, agregarlo directamente a la cola ready
+                    // Si no, agregarlo a pendingProcesses para que aparezca cuando llegue su ciclo
+                    if (adjustedArrival == 0) {
+                        operatingSystem.moveToReady(pcb);
+                    } else {
+                        synchronized (pendingProcesses) {
+                            pendingProcesses.add(new PendingProcess(pcb, adjustedArrival));
+                        }
+                    }
+                }
+
+                int processesWithArrival0 = 0;
+                for (int i = 0; i < processes.size(); i++) {
+                    long adjustedArrival = processes.get(i).getArrivalCycle() - minArrivalCycle;
+                    if (adjustedArrival == 0) {
+                        processesWithArrival0++;
+                    }
+                }
+
+                JOptionPane.showMessageDialog(this,
+                    "Configuración cargada exitosamente.\n" +
+                    "Procesos cargados: " + processes.size() + "\n" +
+                    "  - Con arribo inmediato (ciclo 0): " + processesWithArrival0 + "\n" +
+                    "  - Con arribo programado: " + (processes.size() - processesWithArrival0) + "\n" +
+                    "Duración de ciclo: " + config.getCycleDurationMillis() + " ms\n\n" +
+                    "Presione 'Iniciar' para iniciar la simulación.",
+                    "Carga Exitosa",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception ex) {
+                StringBuilder errorMsg = new StringBuilder();
+                errorMsg.append("Error al cargar la configuración:\n");
+                errorMsg.append(ex.getMessage());
+                if (ex.getCause() != null) {
+                    errorMsg.append("\nCausa: ").append(ex.getCause().getMessage());
+                }
+                JOptionPane.showMessageDialog(this,
+                    errorMsg.toString(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
     }//GEN-LAST:event_loadFileActionPerformed
 
     private void policySelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_policySelectorActionPerformed
@@ -1057,7 +1236,35 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_Create20ProcessBtnActionPerformed
 
     private void saveFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveFileActionPerformed
-        // TODO add your handling code here:
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar Configuración");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos JSON (*.json)", "json");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setSelectedFile(new File("simulacion.json"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            if (!fileToSave.getName().toLowerCase().endsWith(".json")) {
+                fileToSave = new File(fileToSave.getAbsolutePath() + ".json");
+            }
+
+            try {
+                ArrayList<ProcessData> processDataList = collectAllProcesses();
+                long cycleDuration = operatingSystem.getCycleDurationMillis();
+                ConfigManager.SimulationConfig config = new ConfigManager.SimulationConfig(cycleDuration, processDataList);
+                ConfigManager.save(config, fileToSave);
+                JOptionPane.showMessageDialog(this,
+                    "Configuración guardada exitosamente en:\n" + fileToSave.getAbsolutePath(),
+                    "Guardar Exitoso",
+                    JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                    "Error al guardar la configuración:\n" + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }//GEN-LAST:event_saveFileActionPerformed
 
     /**
@@ -1156,7 +1363,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JSpinner level3Spinner;
     private javax.swing.JList<String> listosList;
     private javax.swing.JButton loadFile;
-    private javax.swing.JList<String> logList;
+    private javax.swing.JTextArea logTextArea;
     private javax.swing.JLabel marLabel;
     private javax.swing.JSpinner maxMemorySpinner;
     private javax.swing.JLabel modeLabel;
