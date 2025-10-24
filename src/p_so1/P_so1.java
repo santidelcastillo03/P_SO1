@@ -7,6 +7,9 @@ package p_so1;
 import ui.NewMainFrame;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3a873c6aa4dd3aeb9bdcefd7f971a89658d8e372
 /*
  * Simulador Interactivo de Algoritmos de Planificación de Procesos.
  * Permite seleccionar y ejecutar algoritmos de planificación individualmente
@@ -100,6 +103,7 @@ public class P_so1 {
      * Punto de entrada principal con menú interactivo.
      * @param args argumentos de línea de comandos (no utilizados)
      */
+<<<<<<< HEAD
 =======
 /**
  * Simulador de Planificación de Procesos con interfaz gráfica.
@@ -111,12 +115,49 @@ public class P_so1 {
 
     
 >>>>>>> sdev
+=======
+>>>>>>> 3a873c6aa4dd3aeb9bdcefd7f971a89658d8e372
     public static void main(String[] args) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new NewMainFrame().setVisible(true);
+        configurarSalidaColoreada();
+        Scanner scanner = new Scanner(System.in);
+        boolean continuar = true;
+
+        imprimirBanner();
+
+        while (continuar) {
+            mostrarMenu();
+            int opcion = leerOpcion(scanner);
+
+            switch (opcion) {
+                case 1:
+                    ejecutarEscenario("FCFS (First Come First Served)", PolicyType.FCFS, SCENARIO_FCFS);
+                    break;
+                case 2:
+                    ejecutarEscenario("SPN (Shortest Process Next)", PolicyType.SPN, SCENARIO_SPN);
+                    break;
+                case 3:
+                    ejecutarEscenario("HRRN (Highest Response Ratio Next)", PolicyType.HRRN, SCENARIO_HRRN);
+                    break;
+                case 4:
+                    ejecutarEscenario("SRTF (Shortest Remaining Time First)", PolicyType.SRT, SCENARIO_SRTF);
+                    break;
+                case 5:
+                    ejecutarEscenario("Round Robin (Quantum=3)", PolicyType.ROUND_ROBIN, SCENARIO_RR);
+                    break;
+                case 6:
+                    ejecutarEscenario("Feedback (Multilevel Queues)", PolicyType.FEEDBACK, SCENARIO_FEEDBACK);
+                    break;
+                case 7:
+                    continuar = false;
+                    imprimirConColor(COLOR_SUMMARY, "¡Hasta luego!");
+                    break;
+                default:
+                    imprimirConColor(COLOR_ERROR, "❌ Opción no válida. Intente nuevamente.\n");
             }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3a873c6aa4dd3aeb9bdcefd7f971a89658d8e372
 
             if (continuar && opcion >= 1 && opcion <= 6) {
                 imprimirConColor(COLOR_QUEUE, "\nPresione Enter para volver al menú...");
@@ -768,10 +809,14 @@ public class P_so1 {
                     // Se ignora el fallo de formato y se usa el mensaje base
                 }
             }
+<<<<<<< HEAD
             return mensaje != null ? mensaje : "";
         }
 =======
         });
 >>>>>>> sdev
+=======
+        });
+>>>>>>> 3a873c6aa4dd3aeb9bdcefd7f971a89658d8e372
     }
 }
