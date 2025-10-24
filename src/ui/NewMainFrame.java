@@ -36,6 +36,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private IOHandler ioHandler;
     private Thread ioThread;
     private Thread arrivalCheckerThread;
+    private Thread uiUpdaterThread;
     private boolean internalPolicyUpdate;
     private ArrayList<PendingProcess> pendingProcesses;
     private RandomProcessGenerator processGenerator;
@@ -60,6 +61,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         configurePolicySelector();
         configureSpeedSlider();
         updateSimulationControls();
+        initializeCPUPanel();
     }
 
     private void configureSpinners() {
@@ -278,12 +280,14 @@ public class NewMainFrame extends javax.swing.JFrame {
         ioHandler.setCycleDurationMillis(value);
         ensureIoThread();
         startArrivalChecker();
+        startUIUpdater();
         operatingSystem.startSystemClock();
         updateSimulationControls();
     }
 
     private void pauseSimulation() {
         operatingSystem.stopSystemClock();
+        shutdownUIUpdater();
         updateSimulationControls();
     }
 
@@ -291,6 +295,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         operatingSystem.stopSystemClock();
         shutdownIoHandler();
         shutdownArrivalChecker();
+        shutdownUIUpdater();
         synchronized (pendingProcesses) {
             pendingProcesses = new ArrayList<>();
         }
@@ -354,6 +359,83 @@ public class NewMainFrame extends javax.swing.JFrame {
         }
     }
 
+    private void startUIUpdater() {
+        if (uiUpdaterThread != null && uiUpdaterThread.isAlive()) {
+            return;
+        }
+        uiUpdaterThread = new Thread(this::runUIUpdater, "UIUpdater-Thread");
+        uiUpdaterThread.setDaemon(true);
+        uiUpdaterThread.start();
+    }
+
+    private void runUIUpdater() {
+        while (!Thread.currentThread().isInterrupted() && operatingSystem.isClockRunning()) {
+            try {
+                javax.swing.SwingUtilities.invokeLater(this::updateCPUPanel);
+                Thread.sleep(100L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
+    private void updateCPUPanel() {
+        if (cpu == null) {
+            return;
+        }
+        ProcessControlBlock currentProcess = cpu.getCurrentProcess();
+        if (currentProcess == null) {
+            processLabel.setText("N/A");
+            pidLabel.setText("--");
+            pcLabel.setText("--");
+            marLabel.setText("--");
+            modeLabel.setText("OS");
+        } else {
+            processLabel.setText(currentProcess.getProcessName());
+            pidLabel.setText(String.valueOf(currentProcess.getProcessId()));
+            pcLabel.setText(String.valueOf(currentProcess.getProgramCounter()));
+            marLabel.setText(String.valueOf(currentProcess.getMemoryAddressRegister()));
+            modeLabel.setText("Usuario");
+        }
+        currentCycleLabel.setText(String.valueOf(operatingSystem.getGlobalClockCycle()));
+        updateProcessQueues();
+    }
+
+    private void updateProcessQueues() {
+        if (operatingSystem == null) {
+            return;
+        }
+        updateQueueList(listosList, operatingSystem.getReadyQueueSnapshot());
+        updateQueueList(bloqList, operatingSystem.getBlockedQueueSnapshot());
+        updateQueueList(finishedList, operatingSystem.getFinishedQueueSnapshot());
+        updateQueueList(susList, operatingSystem.getSuspendedQueuesSnapshot());
+    }
+
+    private void updateQueueList(javax.swing.JList<String> list, ProcessControlBlock[] processes) {
+        javax.swing.DefaultListModel<String> model = new javax.swing.DefaultListModel<>();
+        if (processes != null) {
+            for (ProcessControlBlock pcb : processes) {
+                if (pcb != null) {
+                    model.addElement(pcb.getProcessName() + " (PID:" + pcb.getProcessId() + ")");
+                }
+            }
+        }
+        list.setModel(model);
+    }
+
+    private void shutdownUIUpdater() {
+        if (uiUpdaterThread != null && uiUpdaterThread.isAlive()) {
+            uiUpdaterThread.interrupt();
+            try {
+                uiUpdaterThread.join(500L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            uiUpdaterThread = null;
+        }
+    }
+
     private void updateSimulationControls() {
         boolean running = operatingSystem != null && operatingSystem.isClockRunning();
         StartBtn.setEnabled(!running);
@@ -361,11 +443,20 @@ public class NewMainFrame extends javax.swing.JFrame {
         restartBtn.setEnabled(true);
     }
 
+    private void initializeCPUPanel() {
+        processLabel.setText("N/A");
+        pidLabel.setText("--");
+        pcLabel.setText("--");
+        marLabel.setText("--");
+        currentCycleLabel.setText("0");
+        modeLabel.setText("OS");
+    }
+
     private void createProcess() {
         try {
             String processName = processNameField.getText().trim();
             if (processName.isEmpty()) {
-                processName = "P-" + System.currentTimeMillis();
+                processName = "Proceso-" + System.currentTimeMillis();
             }
             int arrivalCycle = ((Number) arrivalSpinner.getValue()).intValue();
             int totalInstructions = ((Number) instructionSpinner.getValue()).intValue();
@@ -414,27 +505,30 @@ public class NewMainFrame extends javax.swing.JFrame {
             long currentCycle = operatingSystem.getGlobalClockCycle();
             int processesCreated = 0;
             int processesScheduled = 0;
-            for (int i = 0; i < 20; i++) {
+
+            for (int i = 0; i < 10; i++) {
+                ProcessControlBlock pcb = processGenerator.generateRandomProcess();
+                operatingSystem.moveToReady(pcb);
+                processesCreated++;
+            }
+
+            for (int i = 0; i < 10; i++) {
                 ProcessControlBlock pcb = processGenerator.generateRandomProcess();
                 int arrivalCycle = processGenerator.generateRandomArrivalCycle(
-                    (int) currentCycle,
+                    (int) currentCycle + 1,
                     (int) currentCycle + 50
                 );
-                if (arrivalCycle <= currentCycle) {
-                    operatingSystem.moveToReady(pcb);
-                    processesCreated++;
-                } else {
-                    synchronized (pendingProcesses) {
-                        pendingProcesses.add(new PendingProcess(pcb, arrivalCycle));
-                    }
-                    processesScheduled++;
+                synchronized (pendingProcesses) {
+                    pendingProcesses.add(new PendingProcess(pcb, arrivalCycle));
                 }
+                processesScheduled++;
             }
+
             JOptionPane.showMessageDialog(this,
                 "20 procesos aleatorios creados exitosamente:\n" +
                 "- Agregados inmediatamente: " + processesCreated + "\n" +
                 "- Programados para arribar: " + processesScheduled + "\n" +
-                "Rango de arribo: ciclo " + currentCycle + " a " + (currentCycle + 50),
+                "Rango de arribo programado: ciclo " + (currentCycle + 1) + " a " + (currentCycle + 50),
                 "Procesos Creados",
                 JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception ex) {
@@ -499,12 +593,10 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel20 = new javax.swing.JLabel();
         jLabel21 = new javax.swing.JLabel();
         jLabel22 = new javax.swing.JLabel();
-        jLabel23 = new javax.swing.JLabel();
         jLabel24 = new javax.swing.JLabel();
         jLabel25 = new javax.swing.JLabel();
         currentCycleLabel = new javax.swing.JLabel();
         modeLabel = new javax.swing.JLabel();
-        totalLabel = new javax.swing.JLabel();
         marLabel = new javax.swing.JLabel();
         pcLabel = new javax.swing.JLabel();
         pidLabel = new javax.swing.JLabel();
@@ -716,10 +808,6 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel22.setText("MAR:");
         CpuPanel.add(jLabel22, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 120, -1, -1));
 
-        jLabel23.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel23.setText("Total:");
-        CpuPanel.add(jLabel23, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 150, -1, -1));
-
         jLabel24.setForeground(new java.awt.Color(255, 255, 255));
         jLabel24.setText("Ciclo actual:");
         CpuPanel.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 180, -1, -1));
@@ -735,10 +823,6 @@ public class NewMainFrame extends javax.swing.JFrame {
         modeLabel.setForeground(new java.awt.Color(255, 255, 255));
         modeLabel.setText("OS");
         CpuPanel.add(modeLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 210, 60, -1));
-
-        totalLabel.setForeground(new java.awt.Color(255, 255, 255));
-        totalLabel.setText("--");
-        CpuPanel.add(totalLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 150, 60, -1));
 
         marLabel.setForeground(new java.awt.Color(255, 255, 255));
         marLabel.setText("--");
@@ -786,38 +870,18 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel36.setText("Bloqueados");
         QueuesPanel.add(jLabel36, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 30, 110, -1));
 
-        listosList.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
         jScrollPane6.setViewportView(listosList);
 
         QueuesPanel.add(jScrollPane6, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, 100, 160));
 
-        bloqList.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
         jScrollPane7.setViewportView(bloqList);
 
         QueuesPanel.add(jScrollPane7, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 60, 100, 160));
 
-        finishedList.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
         jScrollPane8.setViewportView(finishedList);
 
         QueuesPanel.add(jScrollPane8, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 60, 100, 160));
 
-        susList.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
         jScrollPane9.setViewportView(susList);
 
         QueuesPanel.add(jScrollPane9, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 60, 100, 160));
@@ -1007,7 +1071,6 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
     private javax.swing.JLabel jLabel22;
-    private javax.swing.JLabel jLabel23;
     private javax.swing.JLabel jLabel24;
     private javax.swing.JLabel jLabel25;
     private javax.swing.JLabel jLabel3;
@@ -1050,6 +1113,5 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JButton saveFile;
     private javax.swing.JSlider speedSlider;
     private javax.swing.JList<String> susList;
-    private javax.swing.JLabel totalLabel;
     // End of variables declaration//GEN-END:variables
 }

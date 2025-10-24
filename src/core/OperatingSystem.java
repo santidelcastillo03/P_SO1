@@ -211,6 +211,56 @@ public class OperatingSystem {
     }
 
     /**
+     * Devuelve una instantánea de la cola de bloqueados.
+     * @return arreglo con los procesos actualmente bloqueados
+     */
+    public ProcessControlBlock[] getBlockedQueueSnapshot() {
+        synchronized (stateLock) {
+            Object[] raw = blockedQueue.getAllProcesses();
+            ProcessControlBlock[] snapshot = new ProcessControlBlock[raw.length];
+            for (int i = 0; i < raw.length; i++) {
+                snapshot[i] = (ProcessControlBlock) raw[i];
+            }
+            return snapshot;
+        }
+    }
+
+    /**
+     * Devuelve una instantánea de la cola de finalizados.
+     * @return arreglo con los procesos finalizados
+     */
+    public ProcessControlBlock[] getFinishedQueueSnapshot() {
+        synchronized (stateLock) {
+            Object[] raw = finishedProcessesList.getAllProcesses();
+            ProcessControlBlock[] snapshot = new ProcessControlBlock[raw.length];
+            for (int i = 0; i < raw.length; i++) {
+                snapshot[i] = (ProcessControlBlock) raw[i];
+            }
+            return snapshot;
+        }
+    }
+
+    /**
+     * Devuelve una instantánea de las colas de suspendidos (listos + bloqueados).
+     * @return arreglo con los procesos suspendidos
+     */
+    public ProcessControlBlock[] getSuspendedQueuesSnapshot() {
+        synchronized (stateLock) {
+            Object[] rawReady = readySuspendedQueue.getAllProcesses();
+            Object[] rawBlocked = blockedSuspendedQueue.getAllProcesses();
+            ProcessControlBlock[] snapshot = new ProcessControlBlock[rawReady.length + rawBlocked.length];
+            int index = 0;
+            for (int i = 0; i < rawReady.length; i++) {
+                snapshot[index++] = (ProcessControlBlock) rawReady[i];
+            }
+            for (int i = 0; i < rawBlocked.length; i++) {
+                snapshot[index++] = (ProcessControlBlock) rawBlocked[i];
+            }
+            return snapshot;
+        }
+    }
+
+    /**
      * Elimina un proceso específico de la cola de listos.
      * @param pcb proceso a remover
      * @return true si se eliminó correctamente
