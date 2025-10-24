@@ -16,40 +16,40 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-/**
+/*
  * Simulador Interactivo de Algoritmos de Planificación de Procesos.
  * Permite seleccionar y ejecutar algoritmos de planificación individualmente
  * con escenarios optimizados para demostrar su comportamiento.
  */
 public class P_so1 {
 
-    /** Duración de cada ciclo del reloj simulado. */
+    /* Duración de cada ciclo del reloj simulado. */
     private static final long CYCLE_DURATION_MS = 100L;
-    /** Límite de ciclos antes de abortar la simulación. */
+    /* Límite de ciclos antes de abortar la simulación. */
     private static final int MAX_CYCLES = 1000;
     /** Quantum a utilizar para Round Robin. */
     private static final int ROUND_ROBIN_QUANTUM = 3;
 
-    /** Código ANSI para reiniciar el color. */
+    /* Código ANSI para reiniciar el color. */
     private static final String ANSI_RESET = "\u001B[0m";
-    /** Color asociado a los ciclos del reloj. */
+    /* Color asociado a los ciclos del reloj. */
     private static final String COLOR_CYCLE = "\u001B[36m";
-    /** Color asociado a cambios de estado registrados por el sistema. */
+    /* Color asociado a cambios de estado registrados por el sistema. */
     private static final String COLOR_STATE = "\u001B[35m";
-    /** Color asociado a eventos de arribo de procesos. */
+    /* Color asociado a eventos de arribo de procesos. */
     private static final String COLOR_PROCESS = "\u001B[32m";
-    /** Color asociado a cambios de proceso en CPU. */
+    /* Color asociado a cambios de proceso en CPU. */
     private static final String COLOR_SWITCH = "\u001B[96m";
-    /** Color asociado al estado de las colas. */
+    /* Color asociado al estado de las colas. */
     private static final String COLOR_QUEUE = "\u001B[33m";
-    /** Color dedicado al resumen final de métricas. */
+    /* Color dedicado al resumen final de métricas. */
     private static final String COLOR_SUMMARY = "\u001B[34m";
-    /** Color dedicado a eventos de I/O. */
+    /* Color dedicado a eventos de I/O. */
     private static final String COLOR_IO = "\u001B[94m";
-    /** Color para mensajes de alerta o errores. */
+    /* Color para mensajes de alerta o errores. */
     private static final String COLOR_ERROR = "\u001B[31m";
 
-    /** Escenario optimizado para FCFS: resalta el efecto convoy y suspensiones por memoria. */
+    /* Escenario optimizado para FCFS: resalta el efecto convoy y suspensiones por memoria. */
     private static final ProcessSpec[] SCENARIO_FCFS = new ProcessSpec[] {
         new ProcessSpec("FCFS-Largo", 32, 0, false, -1, 0),
         new ProcessSpec("FCFS-IO-A", 14, 0, true, 4, 3),
@@ -59,7 +59,7 @@ public class P_so1 {
         new ProcessSpec("FCFS-Extra-2", 7, 2, false, -1, 0)
     };
 
-    /** Escenario optimizado para SPN: enfatiza la selección del proceso más corto disponible. */
+    /* Escenario optimizado para SPN: enfatiza la selección del proceso más corto disponible. */
     private static final ProcessSpec[] SCENARIO_SPN = new ProcessSpec[] {
         new ProcessSpec("SPN-Base", 20, 0, false, -1, 0),
         new ProcessSpec("SPN-Corto-IO", 5, 0, true, 2, 2),
@@ -69,7 +69,7 @@ public class P_so1 {
         new ProcessSpec("SPN-Largo", 18, 3, false, -1, 0)
     };
 
-    /** Escenario optimizado para HRRN: procesos cortos llegan tras esperas prolongadas. */
+    /* Escenario optimizado para HRRN: procesos cortos llegan tras esperas prolongadas. */
     private static final ProcessSpec[] SCENARIO_HRRN = new ProcessSpec[] {
         new ProcessSpec("HRRN-Largo", 28, 0, false, -1, 0),
         new ProcessSpec("HRRN-Medio", 12, 1, false, -1, 0),
@@ -78,7 +78,7 @@ public class P_so1 {
         new ProcessSpec("HRRN-Corto-C", 3, 14, false, -1, 0)
     };
 
-    /** Escenario optimizado para SRTF: demuestra expropiaciones por tiempo restante. */
+    /* Escenario optimizado para SRTF: demuestra expropiaciones por tiempo restante. */
     private static final ProcessSpec[] SCENARIO_SRTF = new ProcessSpec[] {
         new ProcessSpec("SRTF-Largo", 30, 0, false, -1, 0),
         new ProcessSpec("SRTF-IO-1", 11, 1, true, 3, 3),
@@ -88,7 +88,7 @@ public class P_so1 {
         new ProcessSpec("SRTF-Extra", 5, 3, false, -1, 0)
     };
 
-    /** Escenario optimizado para Round Robin: ilustra repartición equitativa y bloqueos. */
+    /* Escenario optimizado para Round Robin: ilustra repartición equitativa y bloqueos. */
     private static final ProcessSpec[] SCENARIO_RR = new ProcessSpec[] {
         new ProcessSpec("RR-CPU-Pesado", 22, 0, false, -1, 0),
         new ProcessSpec("RR-IO-1", 13, 0, true, 4, 3),
@@ -98,14 +98,14 @@ public class P_so1 {
         new ProcessSpec("RR-Refuerzo", 8, 2, false, -1, 0)
     };
 
-    /** Escenario optimizado para Feedback: procesos descienden de nivel al agotar su quantum. */
+    /* Escenario optimizado para Feedback: procesos descienden de nivel al agotar su quantum. */
     private static final ProcessSpec[] SCENARIO_FEEDBACK = new ProcessSpec[] {
         new ProcessSpec("FB-Largo", 12, 0, false, -1, 0),
         new ProcessSpec("FB-Corto-A", 4, 0, false, -1, 0),
         new ProcessSpec("FB-Medio", 6, 1, false, -1, 0)
     };
 
-    /**
+    /*
      * Punto de entrada principal con menú interactivo.
      * @param args argumentos de línea de comandos (no utilizados)
      */
@@ -156,7 +156,7 @@ public class P_so1 {
         scanner.close();
     }
 
-    /**
+    /*
      * Configura el logger global para imprimir eventos con códigos de color diferenciados.
      */
     private static void configurarSalidaColoreada() {
@@ -170,7 +170,7 @@ public class P_so1 {
         rootLogger.setLevel(Level.INFO);
     }
 
-    /**
+    /*
      * Devuelve el mensaje decorado con el color indicado.
      * @param color código ANSI a aplicar
      * @param mensaje texto original a colorear
@@ -180,7 +180,7 @@ public class P_so1 {
         return color + mensaje + ANSI_RESET;
     }
 
-    /**
+    /*
      * Imprime un mensaje en consola aplicando el color especificado.
      * @param color código ANSI a aplicar
      * @param mensaje texto a mostrar
@@ -189,7 +189,7 @@ public class P_so1 {
         System.out.println(colorear(color, mensaje));
     }
 
-    /**
+    /*
      * Muestra el banner inicial del simulador con información general.
      */
     private static void imprimirBanner() {
@@ -201,7 +201,7 @@ public class P_so1 {
         imprimirConColor(COLOR_SUMMARY, "   optimizados que demuestran sus características principales.\n");
     }
 
-    /**
+    /*
      * Despliega el menú principal con las políticas disponibles.
      */
     private static void mostrarMenu() {
@@ -224,7 +224,7 @@ public class P_so1 {
         System.out.print("\nSeleccione una opción (1-7): ");
     }
 
-    /**
+    /*
      * Lee la opción seleccionada por el usuario validando valores numéricos.
      * @param scanner lector compartido de entradas
      * @return número de opción o -1 si es inválida
@@ -237,7 +237,7 @@ public class P_so1 {
         }
     }
 
-    /**
+    /*
      * Ejecuta la simulación asociada a la política seleccionada mostrando configuración y resultados.
      * @param titulo etiqueta amigable de la política
      * @param politica política de planificación a evaluar
@@ -266,7 +266,7 @@ public class P_so1 {
         analizarPolitica(politica, resultado);
     }
 
-    /**
+    /*
      * Ejecuta la simulación en tiempo real controlando llegadas, bloqueos, suspensiones y métricas.
      * @param titulo etiqueta amigable del escenario
      * @param politica política a emplear
@@ -372,7 +372,7 @@ public class P_so1 {
         return resultado;
     }
 
-    /**
+    /*
      * Muestra un resumen del estado actual del sistema cada ciertos ciclos.
      * @param os referencia al sistema operativo
      * @param cpu referencia a la CPU
@@ -410,7 +410,7 @@ public class P_so1 {
         imprimirConColor(COLOR_QUEUE, colas);
     }
 
-    /**
+    /*
      * Encola procesos cuya llegada ocurre antes o igual al ciclo de referencia inicial.
      * @param os sistema operativo responsable de las colas
      * @param infos metadatos de los procesos
@@ -430,7 +430,7 @@ public class P_so1 {
         }
     }
 
-    /**
+    /*
      * Encola procesos cuya llegada está programada para el ciclo actual.
      * @param os sistema operativo responsable de las colas
      * @param cicloActual ciclo global vigente
@@ -450,7 +450,7 @@ public class P_so1 {
         }
     }
 
-    /**
+    /*
      * Crea el PCB del proceso indicado y lo mueve a la cola de listos respetando la configuración I/O.
      * @param os sistema operativo responsable de la transición
      * @param infos metadatos de los procesos
@@ -487,7 +487,7 @@ public class P_so1 {
         }
     }
 
-    /**
+    /*
      * Busca el índice asociado a un PID específico dentro del arreglo de procesos.
      * @param processIds arreglo de PIDs
      * @param id PID buscado
@@ -502,7 +502,7 @@ public class P_so1 {
         return -1;
     }
 
-    /**
+    /*
      * Determina si todos los procesos ya finalizaron considerando colas y estado de la CPU.
      * @param os sistema operativo con la información de colas
      * @param cpu CPU ejecutando los procesos
@@ -523,7 +523,7 @@ public class P_so1 {
                 && cpu.isIdle();
     }
 
-    /**
+    /*
      * Analiza las ventajas y desventajas de la política ejecutada mostrando sus métricas principales.
      * @param politica política evaluada
      * @param resultado métricas agregadas del escenario
@@ -565,7 +565,7 @@ public class P_so1 {
         System.out.printf("   • Tiempo de espera promedio: %.2f ciclos%n", resultado.obtenerPromedioEspera());
     }
 
-    /** Descriptor de proceso para el escenario de prueba. */
+    /* Descriptor de proceso para el escenario de prueba. */
     private static final class ProcessSpec {
         final String nombre;
         final int totalInstrucciones;
@@ -574,7 +574,7 @@ public class P_so1 {
         final int cicloIO;
         final int duracionIO;
 
-        /**
+        /*
          * Construye un descriptor de proceso con su comportamiento esperado.
          * @param nombre nombre visible del proceso
          * @param totalInstrucciones total de instrucciones que ejecutará
@@ -593,7 +593,7 @@ public class P_so1 {
         }
     }
 
-    /** Información dinámica de cada proceso durante la simulación. */
+    /* Información dinámica de cada proceso durante la simulación. */
     private static final class ProcessInfo {
         int id;
         final String nombre;
@@ -606,7 +606,7 @@ public class P_so1 {
         int tiempoEspera;
         ProcessControlBlock pcb;  // ⭐ Referencia al PCB actual
 
-        /**
+        /*
          * Construye el contenedor de métricas dinámicas de un proceso durante el escenario.
          * @param nombre etiqueta del proceso
          * @param instrucciones total de instrucciones a ejecutar
@@ -629,7 +629,7 @@ public class P_so1 {
         }
     }
 
-    /** Resultado agregado para cada política. */
+    /* Resultado agregado para cada política. */
     private static final class ScenarioResult {
         final String etiqueta;
         final PolicyType politica;
@@ -637,7 +637,7 @@ public class P_so1 {
         private double promedioEspera;
         private long totalCiclos;
 
-        /**
+        /*
          * Construye la estructura de resultados para un escenario ejecutado.
          * @param etiqueta nombre descriptivo del escenario
          * @param politica política de planificación aplicada
@@ -651,7 +651,7 @@ public class P_so1 {
             this.totalCiclos = 0L;
         }
 
-        /**
+        /*
          * Registra la cantidad total de ciclos ejecutados durante la simulación.
          * @param totalCiclos ciclos acumulados por el reloj global
          */
@@ -659,7 +659,7 @@ public class P_so1 {
             this.totalCiclos = totalCiclos;
         }
 
-        /**
+        /*
          * Calcula el tiempo de espera individual y promedio de todos los procesos.
          */
         void calcularTiemposDeEspera() {
@@ -681,7 +681,7 @@ public class P_so1 {
             promedioEspera = infos.length == 0 ? 0.0 : acumulado / infos.length;
         }
 
-        /**
+        /*
          * Devuelve el tiempo de espera promedio calculado para el escenario.
          * @return tiempo de espera medio en ciclos
          */
@@ -689,7 +689,7 @@ public class P_so1 {
             return promedioEspera;
         }
 
-        /**
+        /*
          * Imprime el detalle tabla de tiempos de espera y métricas clave del escenario.
          */
         void imprimirDetalle() {
@@ -714,12 +714,12 @@ public class P_so1 {
         }
     }
 
-    /**
+    /*
      * Handler personalizado para colorear los logs del sistema operativo y la CPU.
      */
     private static final class ColoredConsoleHandler extends Handler {
 
-        /**
+        /*
          * Procesa cada registro del logger aplicando un color contextual.
          * @param record evento registrado por el logger
          */
@@ -737,7 +737,7 @@ public class P_so1 {
             }
         }
 
-        /**
+        /*
          * No se requiere vaciado manual porque la salida es directa en consola.
          */
         @Override
@@ -745,7 +745,7 @@ public class P_so1 {
             // No hay recursos por vaciar porque escribimos directamente en System.out
         }
 
-        /**
+        /*
          * No libera recursos adicionales porque el handler no mantiene conexiones externas.
          */
         @Override
@@ -753,7 +753,7 @@ public class P_so1 {
             // Sin recursos adicionales que cerrar
         }
 
-        /**
+        /*
          * Determina el color adecuado para el mensaje según su origen o contenido.
          * @param record registro original del logger
          * @param mensaje texto formateado del registro
@@ -782,7 +782,7 @@ public class P_so1 {
             return COLOR_QUEUE;
         }
 
-        /**
+        /*
          * Construye el mensaje final aplicando parámetros y preservando la excepción si existe.
          * @param record evento original del logger
          * @return mensaje listo para impresión

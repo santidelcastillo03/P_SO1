@@ -7,7 +7,7 @@ package util;
 import core.ProcessControlBlock;
 import java.util.Random;
 
-/**
+/*
  * Generador de procesos aleatorios para pruebas y simulaciones.
  *
  * @author santiagodelcastillo
@@ -25,7 +25,7 @@ public class RandomProcessGenerator {
     private static final int MAX_IO_DURATION = 10;
     private static final double IO_BOUND_PROBABILITY = 0.4;
 
-    /**
+    /*
      * Constructor que inicializa el generador con una semilla aleatoria.
      */
     public RandomProcessGenerator() {
@@ -33,7 +33,7 @@ public class RandomProcessGenerator {
         this.processCounter = 1;
     }
 
-    /**
+    /*
      * Constructor que permite especificar una semilla para reproducibilidad.
      * @param seed semilla para el generador aleatorio
      */
@@ -42,7 +42,7 @@ public class RandomProcessGenerator {
         this.processCounter = 1;
     }
 
-    /**
+    /*
      * Genera un proceso con características aleatorias.
      * @return ProcessControlBlock con parámetros aleatorios
      */
@@ -75,7 +75,7 @@ public class RandomProcessGenerator {
         return pcb;
     }
 
-    /**
+    /*
      * Genera un ciclo de arribo aleatorio dentro de un rango.
      * @param minCycle ciclo mínimo de arribo
      * @param maxCycle ciclo máximo de arribo
@@ -88,14 +88,14 @@ public class RandomProcessGenerator {
         return minCycle + random.nextInt(maxCycle - minCycle + 1);
     }
 
-    /**
+    /*
      * Reinicia el contador de procesos.
      */
     public void resetCounter() {
         this.processCounter = 1;
     }
 
-    /**
+    /*
      * Establece el contador de procesos en un valor específico.
      * @param counter valor inicial del contador
      */
