@@ -10,6 +10,7 @@ import core.ProcessControlBlock;
 import scheduler.PolicyType;
 import util.IOHandler;
 import util.RandomProcessGenerator;
+import util.LogCapture;
 import datastructures.ArrayList;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
@@ -40,6 +41,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private boolean internalPolicyUpdate;
     private ArrayList<PendingProcess> pendingProcesses;
     private RandomProcessGenerator processGenerator;
+    private LogCapture logCapture;
     private static final String[] POLICY_OPTIONS = {
         "FCFS",
         "Round Robin",
@@ -57,6 +59,8 @@ public class NewMainFrame extends javax.swing.JFrame {
         processGenerator = new RandomProcessGenerator();
         initializeSimulationComponents();
         initComponents();
+        logCapture = new LogCapture(logTextArea);
+        logCapture.start();
         configureSpinners();
         configurePolicySelector();
         configureSpeedSlider();
@@ -378,7 +382,7 @@ public class NewMainFrame extends javax.swing.JFrame {
 
     /**
      * Bucle principal del actualizador de UI que se ejecuta en un hilo separado.
-     * Refresca la interfaz cada 100ms mientras el reloj del sistema operativo
+     * Refresca la interfaz cada 50ms mientras el reloj del sistema operativo
      * esté activo. Usa SwingUtilities.invokeLater para asegurar que las
      * actualizaciones de la UI ocurran en el Event Dispatch Thread (EDT).
      */
@@ -389,7 +393,7 @@ public class NewMainFrame extends javax.swing.JFrame {
                 // Programa la actualización de la UI en el Event Dispatch Thread
                 // Esto es necesario porque Swing no es thread-safe
                 javax.swing.SwingUtilities.invokeLater(this::updateCPUPanel);
-                // Espera 100ms antes de la próxima actualización
+                // Espera 50ms antes de la próxima actualización
                 Thread.sleep(50L);
             } catch (InterruptedException ex) {
                 // Si el hilo es interrumpido, restaura el estado de interrupción y sale
@@ -678,7 +682,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         loadFile = new javax.swing.JButton();
         Logs = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        logList = new javax.swing.JList<>();
+        logTextArea = new javax.swing.JTextArea();
         Charts = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -991,16 +995,13 @@ public class NewMainFrame extends javax.swing.JFrame {
         Logs.setBackground(new java.awt.Color(53, 73, 133));
         Logs.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        logList.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
-        jScrollPane1.setViewportView(logList);
+        logTextArea.setColumns(20);
+        logTextArea.setRows(5);
+        jScrollPane1.setViewportView(logTextArea);
 
         Logs.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 30, 970, 540));
 
-        jTabbedPane1.addTab("Configuracion", Logs);
+        jTabbedPane1.addTab("Logs", Logs);
 
         Charts.setBackground(new java.awt.Color(53, 73, 133));
         Charts.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -1156,7 +1157,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JSpinner level3Spinner;
     private javax.swing.JList<String> listosList;
     private javax.swing.JButton loadFile;
-    private javax.swing.JList<String> logList;
+    private javax.swing.JTextArea logTextArea;
     private javax.swing.JLabel marLabel;
     private javax.swing.JSpinner maxMemorySpinner;
     private javax.swing.JLabel modeLabel;
