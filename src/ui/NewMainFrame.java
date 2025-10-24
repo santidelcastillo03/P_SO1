@@ -4,17 +4,124 @@
  */
 package ui;
 
+import core.CPU;
+import core.OperatingSystem;
+import scheduler.PolicyType;
+import util.IOHandler;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JOptionPane;
+import javax.swing.SpinnerNumberModel;
+
 /**
  *
  * @author angel
  */
 public class NewMainFrame extends javax.swing.JFrame {
 
+    private final OperatingSystem operatingSystem;
+    private final CPU cpu;
+    private final IOHandler ioHandler;
+    private boolean internalPolicyUpdate;
+    private static final String[] POLICY_OPTIONS = {
+        "FCFS",
+        "Round Robin",
+        "SPN",
+        "SRTF",
+        "HRRN",
+        "Feedback"
+    };
+
     /**
      * Creates new form NewMainFrame
      */
     public NewMainFrame() {
+        operatingSystem = new OperatingSystem();
+        ioHandler = new IOHandler(operatingSystem, 100L);
+        cpu = new CPU(operatingSystem, ioHandler);
+        operatingSystem.attachCpu(cpu);
         initComponents();
+        configureSpinners();
+        configurePolicySelector();
+    }
+
+    private void configureSpinners() {
+        RRQuantumSpinner.setModel(new SpinnerNumberModel(operatingSystem.getRoundRobinQuantum(), 1, 20, 1));
+        int[] feedbackValues = operatingSystem.getFeedbackQuantaSnapshot();
+        level0Spinner.setModel(new SpinnerNumberModel(feedbackValues[0], 1, 50, 1));
+        level1Spinner.setModel(new SpinnerNumberModel(feedbackValues[1], 1, 50, 1));
+        level2Spinner.setModel(new SpinnerNumberModel(feedbackValues[2], 1, 50, 1));
+        level3Spinner.setModel(new SpinnerNumberModel(feedbackValues[3], 1, 50, 1));
+        RRQuantumSpinner.setEnabled(false);
+        setFeedbackSpinnersEnabled(false);
+    }
+
+    private void configurePolicySelector() {
+        internalPolicyUpdate = true;
+        policySelector.setModel(new DefaultComboBoxModel<>(POLICY_OPTIONS));
+        policySelector.setSelectedItem(POLICY_OPTIONS[0]);
+        internalPolicyUpdate = false;
+        PolicyType initialPolicy = resolvePolicy(POLICY_OPTIONS[0]);
+        updatePolicyControls(initialPolicy);
+        applyPolicySelection(initialPolicy);
+    }
+
+    private void updatePolicyControls(PolicyType policyType) {
+        boolean roundRobin = policyType == PolicyType.ROUND_ROBIN;
+        boolean feedback = policyType == PolicyType.FEEDBACK;
+        RRQuantumSpinner.setEnabled(roundRobin);
+        setFeedbackSpinnersEnabled(feedback);
+    }
+
+    private void setFeedbackSpinnersEnabled(boolean enabled) {
+        level0Spinner.setEnabled(enabled);
+        level1Spinner.setEnabled(enabled);
+        level2Spinner.setEnabled(enabled);
+        level3Spinner.setEnabled(enabled);
+    }
+
+    private int[] collectFeedbackQuanta() {
+        return new int[] {
+            ((Number) level0Spinner.getValue()).intValue(),
+            ((Number) level1Spinner.getValue()).intValue(),
+            ((Number) level2Spinner.getValue()).intValue(),
+            ((Number) level3Spinner.getValue()).intValue()
+        };
+    }
+
+    private void applyPolicySelection(PolicyType policyType) {
+        try {
+            if (policyType == PolicyType.ROUND_ROBIN) {
+                int quantum = ((Number) RRQuantumSpinner.getValue()).intValue();
+                operatingSystem.setRoundRobinQuantum(quantum);
+            }
+            if (policyType == PolicyType.FEEDBACK) {
+                int[] feedbackValues = collectFeedbackQuanta();
+                operatingSystem.setFeedbackQuanta(feedbackValues[0], feedbackValues[1], feedbackValues[2], feedbackValues[3]);
+            }
+            operatingSystem.setSchedulingPolicy(policyType);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Configuración inválida", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private PolicyType resolvePolicy(String label) {
+        if (label == null) {
+            return PolicyType.FCFS;
+        }
+        switch (label) {
+            case "Round Robin":
+                return PolicyType.ROUND_ROBIN;
+            case "SPN":
+                return PolicyType.SPN;
+            case "SRTF":
+                return PolicyType.SRT;
+            case "HRRN":
+                return PolicyType.HRRN;
+            case "Feedback":
+                return PolicyType.FEEDBACK;
+            default:
+                return PolicyType.FCFS;
+        }
     }
 
     /**
@@ -123,7 +230,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel1.setText("Planificador:");
         ControlsPanel.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 50, 110, 20));
 
-        policySelector.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        policySelector.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "FCFS", "Round Robin", "SPN", "SRTF", "HRRN", "Feedback" }));
         policySelector.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 policySelectorActionPerformed(evt);
@@ -473,7 +580,16 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_loadFileActionPerformed
 
     private void policySelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_policySelectorActionPerformed
-        // TODO add your handling code here:
+        if (internalPolicyUpdate) {
+            return;
+        }
+        Object selectedItem = policySelector.getSelectedItem();
+        if (selectedItem == null) {
+            return;
+        }
+        PolicyType selectedPolicy = resolvePolicy(selectedItem.toString());
+        updatePolicyControls(selectedPolicy);
+        applyPolicySelection(selectedPolicy);
     }//GEN-LAST:event_policySelectorActionPerformed
 
     private void StartBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_StartBtnActionPerformed

@@ -38,6 +38,8 @@ public class CPU {
     private int timeQuantum;
     /** Quantums base para la política Feedback. */
     private static final int[] FEEDBACK_QUANTA = {1, 2, 3, 4, Integer.MAX_VALUE};
+    /** Cantidad de niveles configurables en la política Feedback. */
+    private static final int FEEDBACK_LEVELS = 4;
 
     /**
      * Crea una CPU asociada al sistema operativo y al manejador de I/O.
@@ -77,6 +79,36 @@ public class CPU {
             throw new IllegalStateException("No es posible definir una política sin un Scheduler asociado");
         }
         scheduler.setPolicy(policy);
+    }
+
+    /**
+     * Permite personalizar los quantums por nivel para la política Feedback.
+     * @param quanta arreglo con los quantums para cada uno de los niveles configurables
+     */
+    public void setFeedbackQuanta(int[] quanta) {
+        if (quanta == null || quanta.length != FEEDBACK_LEVELS) {
+            throw new IllegalArgumentException("Se requieren " + FEEDBACK_LEVELS + " quantums para Feedback");
+        }
+        for (int i = 0; i < FEEDBACK_LEVELS; i++) {
+            int value = quanta[i];
+            if (value <= 0) {
+                throw new IllegalArgumentException("El quantum de Feedback debe ser positivo (nivel " + i + ")");
+            }
+            FEEDBACK_QUANTA[i] = value;
+        }
+        if (FEEDBACK_QUANTA.length > FEEDBACK_LEVELS) {
+            FEEDBACK_QUANTA[FEEDBACK_QUANTA.length - 1] = Integer.MAX_VALUE;
+        }
+    }
+
+    /**
+     * Devuelve una copia de los quantums actuales utilizados por la política Feedback.
+     * @return arreglo con los quantums configurados para cada nivel
+     */
+    public int[] getFeedbackQuantaSnapshot() {
+        int[] snapshot = new int[FEEDBACK_LEVELS];
+        System.arraycopy(FEEDBACK_QUANTA, 0, snapshot, 0, FEEDBACK_LEVELS);
+        return snapshot;
     }
 
     /**

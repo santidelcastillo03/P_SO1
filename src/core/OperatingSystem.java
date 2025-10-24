@@ -64,6 +64,8 @@ public class OperatingSystem {
     private Dispatcher dispatcher;
     /** Quantum utilizado cuando Round Robin es la política activa. */
     private int roundRobinQuantum;
+    /** Quantums configurados para cada nivel de la política Feedback. */
+    private final int[] feedbackQuanta;
 
     /**
      * Construye el sistema operativo con colas vacías y contador en cero.
@@ -85,6 +87,7 @@ public class OperatingSystem {
         this.scheduler = new Scheduler();
         this.dispatcher = new Dispatcher();
         this.roundRobinQuantum = RoundRobin.DEFAULT_QUANTUM;
+        this.feedbackQuanta = new int[] {1, 2, 3, 4};
     }
 
     /**
@@ -283,6 +286,7 @@ public class OperatingSystem {
         this.cpu = Objects.requireNonNull(cpu, "La CPU asociada no puede ser nula");
         this.cpu.setScheduler(scheduler);
         this.cpu.setTimeQuantum(roundRobinQuantum);
+        this.cpu.setFeedbackQuanta(feedbackQuanta);
     }
 
     /**
@@ -294,6 +298,7 @@ public class OperatingSystem {
         if (cpu != null) {
             cpu.setScheduler(this.scheduler);
             cpu.setTimeQuantum(roundRobinQuantum);
+            cpu.setFeedbackQuanta(feedbackQuanta);
         }
     }
 
@@ -315,6 +320,9 @@ public class OperatingSystem {
         if (cpu != null && policy instanceof RoundRobin) {
             cpu.setTimeQuantum(roundRobinQuantum);
         }
+        if (cpu != null && policy instanceof Feedback) {
+            cpu.setFeedbackQuanta(feedbackQuanta);
+        }
     }
 
     /**
@@ -326,6 +334,9 @@ public class OperatingSystem {
         scheduler.setPolicy(policyType);
         if (cpu != null && policyType == PolicyType.ROUND_ROBIN) {
             cpu.setTimeQuantum(roundRobinQuantum);
+        }
+        if (cpu != null && policyType == PolicyType.FEEDBACK) {
+            cpu.setFeedbackQuanta(feedbackQuanta);
         }
     }
 
@@ -349,6 +360,36 @@ public class OperatingSystem {
             cpu.setTimeQuantum(quantum);
         }
         roundRobinQuantum = quantum;
+    }
+
+    /**
+     * Configura los quantums de cada nivel utilizados por la política Feedback.
+     * @param level0 quantum para el nivel 0
+     * @param level1 quantum para el nivel 1
+     * @param level2 quantum para el nivel 2
+     * @param level3 quantum para el nivel 3
+     */
+    public void setFeedbackQuanta(int level0, int level1, int level2, int level3) {
+        if (level0 <= 0 || level1 <= 0 || level2 <= 0 || level3 <= 0) {
+            throw new IllegalArgumentException("Todos los quantums de Feedback deben ser positivos");
+        }
+        feedbackQuanta[0] = level0;
+        feedbackQuanta[1] = level1;
+        feedbackQuanta[2] = level2;
+        feedbackQuanta[3] = level3;
+        if (cpu != null) {
+            cpu.setFeedbackQuanta(feedbackQuanta);
+        }
+    }
+
+    /**
+     * Devuelve una copia de los quantums configurados para la política Feedback.
+     * @return arreglo con los quantums por nivel
+     */
+    public int[] getFeedbackQuantaSnapshot() {
+        int[] snapshot = new int[feedbackQuanta.length];
+        System.arraycopy(feedbackQuanta, 0, snapshot, 0, feedbackQuanta.length);
+        return snapshot;
     }
 
     /**
