@@ -14,27 +14,27 @@ import java.util.concurrent.TimeUnit; //enum that provides a set of time units
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
+/*
  * IOHandler mantiene una cola de procesos esperando la finalización de eventos de I/O y los procesa de forma asíncrona.
  * Permite encolar procesos bloqueados por entrada/salida, simular el retardo de I/O y reinsertarlos en la cola de listos del sistema operativo.
  */
 public class IOHandler implements Runnable {
 
-    /** Logger para mensajes de depuración y seguimiento de eventos de I/O. */
+    /* Logger para mensajes de depuración y seguimiento de eventos de I/O. */
     private static final Logger LOGGER = Logger.getLogger(IOHandler.class.getName());
 
-    /** Referencia al sistema operativo para reinsertar procesos en la cola de listos. */
+    /* Referencia al sistema operativo para reinsertar procesos en la cola de listos. */
     private final OperatingSystem operatingSystem;
-    /** Cola de procesos esperando la finalización de I/O. */
+    /* Cola de procesos esperando la finalización de I/O. */
     private final CustomQueue<ProcessControlBlock> ioQueue;
-    /** Semáforo que indica la cantidad de procesos pendientes de I/O. */
+    /* Semáforo que indica la cantidad de procesos pendientes de I/O. */
     private final Semaphore pendingProcesses;
-    /** Indica si el manejador debe seguir ejecutándose. */
+    /* Indica si el manejador debe seguir ejecutándose. */
     private volatile boolean running;
-    /** Duración de un ciclo de CPU en milisegundos (para simular retardo de I/O). */
+    /* Duración de un ciclo de CPU en milisegundos (para simular retardo de I/O). */
     private volatile long cycleDurationMillis;
 
-    /**
+    /*
      * Construye una instancia de IOHandler con una cola vacía para procesos bloqueados.
      * @param operatingSystem sistema operativo usado para reinsertar procesos en la cola de listos
      * @param cycleDurationMillis duración de un ciclo de CPU en milisegundos
@@ -47,7 +47,7 @@ public class IOHandler implements Runnable {
         this.cycleDurationMillis = Math.max(0L, cycleDurationMillis);
     }
 
-    /**
+    /*
      * Encola un proceso para que el subsistema de I/O lo reanude cuando termine la operación.
      * @param pcb proceso que espera la finalización de I/O
      */
@@ -60,7 +60,7 @@ public class IOHandler implements Runnable {
                 pcb.getProcessId()));
     }
 
-    /**
+    /*
      * Recupera el siguiente proceso que espera la finalización de I/O.
      * @return siguiente proceso bloqueado o null si no hay procesos esperando
      */
@@ -68,7 +68,7 @@ public class IOHandler implements Runnable {
         return ioQueue.dequeue();
     }
 
-    /**
+    /*
      * Da visibilidad sobre la cantidad de procesos encolados esperando I/O.
      * @return cantidad de procesos en espera de finalización de I/O
      */
@@ -76,7 +76,7 @@ public class IOHandler implements Runnable {
         return ioQueue.size();
     }
 
-    /**
+    /*
      * Actualiza la duración de un ciclo de CPU utilizada para calcular los retardos simulados de I/O.
      * @param cycleDurationMillis nueva duración en milisegundos
      */
@@ -84,7 +84,7 @@ public class IOHandler implements Runnable {
         this.cycleDurationMillis = Math.max(0L, cycleDurationMillis);
     }
 
-    /**
+    /*
      * Detiene el bucle del manejador de forma segura.
      */
     public void stop() {
@@ -92,7 +92,7 @@ public class IOHandler implements Runnable {
         pendingProcesses.release();
     }
 
-    /**
+    /*
      * Ejecuta el bucle asíncrono que procesa las finalizaciones de I/O.
      * Extrae procesos de la cola, simula el retardo de I/O y los reinserta en la cola de listos.
      */
