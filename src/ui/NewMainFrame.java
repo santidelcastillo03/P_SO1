@@ -6,8 +6,10 @@ package ui;
 
 import core.CPU;
 import core.OperatingSystem;
+import core.ProcessControlBlock;
 import scheduler.PolicyType;
 import util.IOHandler;
+import datastructures.ArrayList;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
 import javax.swing.SpinnerNumberModel;
@@ -18,11 +20,23 @@ import javax.swing.SpinnerNumberModel;
  */
 public class NewMainFrame extends javax.swing.JFrame {
 
+    private static class PendingProcess {
+        ProcessControlBlock pcb;
+        long arrivalCycle;
+
+        PendingProcess(ProcessControlBlock pcb, long arrivalCycle) {
+            this.pcb = pcb;
+            this.arrivalCycle = arrivalCycle;
+        }
+    }
+
     private OperatingSystem operatingSystem;
     private CPU cpu;
     private IOHandler ioHandler;
     private Thread ioThread;
+    private Thread arrivalCheckerThread;
     private boolean internalPolicyUpdate;
+    private ArrayList<PendingProcess> pendingProcesses;
     private static final String[] POLICY_OPTIONS = {
         "FCFS",
         "Round Robin",
@@ -36,6 +50,7 @@ public class NewMainFrame extends javax.swing.JFrame {
      * Creates new form NewMainFrame
      */
     public NewMainFrame() {
+        pendingProcesses = new ArrayList<>();
         initializeSimulationComponents();
         initComponents();
         configureSpinners();
@@ -51,8 +66,15 @@ public class NewMainFrame extends javax.swing.JFrame {
         level1Spinner.setModel(new SpinnerNumberModel(feedbackValues[1], 1, 50, 1));
         level2Spinner.setModel(new SpinnerNumberModel(feedbackValues[2], 1, 50, 1));
         level3Spinner.setModel(new SpinnerNumberModel(feedbackValues[3], 1, 50, 1));
+        maxMemorySpinner.setModel(new SpinnerNumberModel(operatingSystem.getMaxProcessesInMemory(), 1, 20, 1));
+        arrivalSpinner.setModel(new SpinnerNumberModel(0, 0, 1000, 1));
+        instructionSpinner.setModel(new SpinnerNumberModel(10, 1, 1000, 1));
+        ioCycleSpinner.setModel(new SpinnerNumberModel(-1, -1, 1000, 1));
+        ioDurationSpinner.setModel(new SpinnerNumberModel(0, 0, 100, 1));
         RRQuantumSpinner.setEnabled(false);
         setFeedbackSpinnersEnabled(false);
+        configureMaxMemorySpinner();
+        configureProcessTypeSelector();
     }
 
     private void configurePolicySelector() {
@@ -86,6 +108,48 @@ public class NewMainFrame extends javax.swing.JFrame {
 
     private void updateSpeedLabel(int value) {
         msLabel.setText(value + " ms");
+    }
+
+    private void configureMaxMemorySpinner() {
+        maxMemorySpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                int value = ((Number) maxMemorySpinner.getValue()).intValue();
+                try {
+                    operatingSystem.setMaxProcessesInMemory(value);
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(NewMainFrame.this, ex.getMessage(), "Valor inválido", JOptionPane.ERROR_MESSAGE);
+                    maxMemorySpinner.setValue(operatingSystem.getMaxProcessesInMemory());
+                }
+            }
+        });
+    }
+
+    private void configureProcessTypeSelector() {
+        processType.setModel(new DefaultComboBoxModel<>(new String[] { "CPU-bound", "I/O-bound" }));
+        processType.setSelectedIndex(0);
+        processType.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                updateProcessTypeFields();
+            }
+        });
+        updateProcessTypeFields();
+    }
+
+    private void updateProcessTypeFields() {
+        boolean isIOBound = "I/O-bound".equals(processType.getSelectedItem());
+        ioCycleSpinner.setEnabled(isIOBound);
+        ioDurationSpinner.setEnabled(isIOBound);
+        if (!isIOBound) {
+            ioCycleSpinner.setValue(-1);
+            ioDurationSpinner.setValue(0);
+        } else {
+            if (((Number) ioCycleSpinner.getValue()).intValue() == -1) {
+                ioCycleSpinner.setValue(5);
+            }
+            if (((Number) ioDurationSpinner.getValue()).intValue() == 0) {
+                ioDurationSpinner.setValue(3);
+            }
+        }
     }
 
     private void updatePolicyControls(PolicyType policyType) {
@@ -171,11 +235,46 @@ public class NewMainFrame extends javax.swing.JFrame {
         }
     }
 
+    private void startArrivalChecker() {
+        if (arrivalCheckerThread != null && arrivalCheckerThread.isAlive()) {
+            return;
+        }
+        arrivalCheckerThread = new Thread(this::runArrivalChecker, "ArrivalChecker-Thread");
+        arrivalCheckerThread.setDaemon(true);
+        arrivalCheckerThread.start();
+    }
+
+    private void runArrivalChecker() {
+        while (!Thread.currentThread().isInterrupted() && operatingSystem.isClockRunning()) {
+            try {
+                long currentCycle = operatingSystem.getGlobalClockCycle();
+                checkPendingArrivals(currentCycle);
+                Thread.sleep(Math.max(50L, operatingSystem.getCycleDurationMillis() / 2));
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
+    private void checkPendingArrivals(long currentCycle) {
+        synchronized (pendingProcesses) {
+            for (int i = pendingProcesses.size() - 1; i >= 0; i--) {
+                PendingProcess pending = pendingProcesses.get(i);
+                if (currentCycle >= pending.arrivalCycle) {
+                    operatingSystem.moveToReady(pending.pcb);
+                    pendingProcesses.remove(i);
+                }
+            }
+        }
+    }
+
     private void startSimulation() {
         int value = speedSlider.getValue();
         operatingSystem.setCycleDurationMillis(value);
         ioHandler.setCycleDurationMillis(value);
         ensureIoThread();
+        startArrivalChecker();
         operatingSystem.startSystemClock();
         updateSimulationControls();
     }
@@ -188,9 +287,14 @@ public class NewMainFrame extends javax.swing.JFrame {
     private void restartSimulation() {
         operatingSystem.stopSystemClock();
         shutdownIoHandler();
+        shutdownArrivalChecker();
+        synchronized (pendingProcesses) {
+            pendingProcesses = new ArrayList<>();
+        }
         String selectedLabel = (String) policySelector.getSelectedItem();
         int rrValue = ((Number) RRQuantumSpinner.getValue()).intValue();
         int[] feedbackValues = collectFeedbackQuanta();
+        int maxMemoryValue = ((Number) maxMemorySpinner.getValue()).intValue();
         initializeSimulationComponents();
         int speedValue = speedSlider.getValue();
         operatingSystem.setCycleDurationMillis(speedValue);
@@ -201,6 +305,8 @@ public class NewMainFrame extends javax.swing.JFrame {
         level1Spinner.setValue(feedbackValues[1]);
         level2Spinner.setValue(feedbackValues[2]);
         level3Spinner.setValue(feedbackValues[3]);
+        maxMemorySpinner.setValue(maxMemoryValue);
+        operatingSystem.setMaxProcessesInMemory(maxMemoryValue);
         String targetLabel = selectedLabel != null ? selectedLabel : POLICY_OPTIONS[0];
         internalPolicyUpdate = true;
         policySelector.setSelectedItem(targetLabel);
@@ -217,25 +323,31 @@ public class NewMainFrame extends javax.swing.JFrame {
         }
         if (ioThread != null && ioThread.isAlive()) {
             try {
-                // Esperar a que el hilo termine de forma natural
                 ioThread.join(1000L);
             } catch (InterruptedException ex) {
-                // Si nos interrumpen esperando, restaurar el estado de interrupción
                 Thread.currentThread().interrupt();
             }
-            
-            // Si el hilo aún está vivo después del timeout, hacer una interrupción
             if (ioThread.isAlive()) {
                 ioThread.interrupt();
                 try {
-                    // Dar un poco más de tiempo para que responda a la interrupción
                     ioThread.join(500L);
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                 }
             }
-            
             ioThread = null;
+        }
+    }
+
+    private void shutdownArrivalChecker() {
+        if (arrivalCheckerThread != null && arrivalCheckerThread.isAlive()) {
+            arrivalCheckerThread.interrupt();
+            try {
+                arrivalCheckerThread.join(500L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            arrivalCheckerThread = null;
         }
     }
 
@@ -244,6 +356,54 @@ public class NewMainFrame extends javax.swing.JFrame {
         StartBtn.setEnabled(!running);
         pauseBtn.setEnabled(running);
         restartBtn.setEnabled(true);
+    }
+
+    private void createProcess() {
+        try {
+            String processName = processNameField.getText().trim();
+            if (processName.isEmpty()) {
+                processName = "Proceso-" + System.currentTimeMillis();
+            }
+            int arrivalCycle = ((Number) arrivalSpinner.getValue()).intValue();
+            int totalInstructions = ((Number) instructionSpinner.getValue()).intValue();
+            boolean isIOBound = "I/O-bound".equals(processType.getSelectedItem());
+            int ioCycle = ((Number) ioCycleSpinner.getValue()).intValue();
+            int ioDuration = ((Number) ioDurationSpinner.getValue()).intValue();
+            ProcessControlBlock pcb = new ProcessControlBlock(processName);
+            pcb.setTotalInstructions(totalInstructions);
+            pcb.setIOBound(isIOBound);
+            if (isIOBound) {
+                pcb.setIoExceptionCycle(ioCycle);
+                pcb.setIoDuration(ioDuration);
+            } else {
+                pcb.setIoExceptionCycle(-1);
+                pcb.setIoDuration(0);
+            }
+            long currentCycle = operatingSystem.getGlobalClockCycle();
+            if (arrivalCycle <= currentCycle) {
+                operatingSystem.moveToReady(pcb);
+            } else {
+                synchronized (pendingProcesses) {
+                    pendingProcesses.add(new PendingProcess(pcb, arrivalCycle));
+                }
+            }
+            processNameField.setText("");
+            String arrivalMessage = arrivalCycle <= currentCycle
+                ? "Agregado inmediatamente a la cola de listos"
+                : "Programado para arribar en el ciclo " + arrivalCycle;
+            JOptionPane.showMessageDialog(this,
+                "Proceso creado exitosamente:\n" +
+                "Nombre: " + pcb.getProcessName() + "\n" +
+                "PID: " + pcb.getProcessId() + "\n" +
+                "Instrucciones: " + totalInstructions + "\n" +
+                arrivalMessage,
+                "Proceso Creado",
+                JOptionPane.INFORMATION_MESSAGE);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error al crear proceso", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error inesperado: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     /**
@@ -690,7 +850,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void createProcessBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createProcessBtnActionPerformed
-        // TODO add your handling code here:
+        createProcess();
     }//GEN-LAST:event_createProcessBtnActionPerformed
 
     private void restartBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_restartBtnActionPerformed
@@ -727,7 +887,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_processNameFieldActionPerformed
 
     private void processTypeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_processTypeActionPerformed
-        // TODO add your handling code here:
+        updateProcessTypeFields();
     }//GEN-LAST:event_processTypeActionPerformed
 
     private void Create20ProcessBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Create20ProcessBtnActionPerformed

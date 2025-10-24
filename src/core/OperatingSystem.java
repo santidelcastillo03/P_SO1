@@ -27,8 +27,8 @@ public class OperatingSystem {
 
     /** Logger para trazabilidad de cambios de estado. */
     private static final Logger LOGGER = Logger.getLogger(OperatingSystem.class.getName());
-    /** Capacidad máxima de procesos residentes en memoria principal. */
-    private static final int MAX_PROCESSES_IN_MEMORY = 4;
+    /** Capacidad máxima de procesos residentes en memoria principal por defecto. */
+    private static final int DEFAULT_MAX_PROCESSES_IN_MEMORY = 4;
     /** Duración por defecto de un ciclo del reloj global en milisegundos. */
     private static final long DEFAULT_CYCLE_DURATION_MILLIS = 100L;
 
@@ -44,6 +44,8 @@ public class OperatingSystem {
     private final CustomQueue<ProcessControlBlock> blockedSuspendedQueue;
     /** Cerradura que protege todas las transiciones de estado. */
     private final Object stateLock;
+    /** Capacidad máxima de procesos residentes en memoria principal. */
+    private int maxProcessesInMemory;
     /** Contador de procesos residentes actualmente en memoria principal. */
     private int processesInMemory;
     /** Conteo acumulado de ciclos del reloj global. */
@@ -77,6 +79,7 @@ public class OperatingSystem {
         this.readySuspendedQueue = new CustomQueue<>();
         this.blockedSuspendedQueue = new CustomQueue<>();
         this.stateLock = new Object();
+        this.maxProcessesInMemory = DEFAULT_MAX_PROCESSES_IN_MEMORY;
         this.processesInMemory = 0;
         this.globalClockCycle = new AtomicLong(0L);
         this.clockRunning = new AtomicBoolean(false);
@@ -401,6 +404,31 @@ public class OperatingSystem {
     }
 
     /**
+     * Establece el número máximo de procesos que pueden residir en memoria principal.
+     * @param maxProcesses cantidad máxima de procesos en memoria (debe ser positivo)
+     */
+    public void setMaxProcessesInMemory(int maxProcesses) {
+        if (maxProcesses <= 0) {
+            throw new IllegalArgumentException("El número máximo de procesos en memoria debe ser positivo");
+        }
+        synchronized (stateLock) {
+            this.maxProcessesInMemory = maxProcesses;
+            // Si la nueva capacidad es menor al número actual de procesos en memoria,
+            // se suspenderán procesos en el próximo ciclo al intentar agregar nuevos
+        }
+    }
+
+    /**
+     * Obtiene el número máximo de procesos que pueden residir en memoria principal.
+     * @return capacidad máxima de memoria
+     */
+    public int getMaxProcessesInMemory() {
+        synchronized (stateLock) {
+            return maxProcessesInMemory;
+        }
+    }
+
+    /**
      * Ajusta la duración de cada ciclo de reloj para controlar la velocidad de simulación.
      * @param cycleDurationMillis tiempo en milisegundos por ciclo (no negativo)
      */
@@ -660,7 +688,7 @@ public class OperatingSystem {
      * un proceso adicional sin espacio disponible.
      */
     private void ensureCapacity() {
-        while (processesInMemory >= MAX_PROCESSES_IN_MEMORY) {
+        while (processesInMemory >= maxProcessesInMemory) {
             ProcessControlBlock candidate = readyQueue.dequeue();
             if (candidate != null) {
                 suspendCandidate(candidate, ProcessState.LISTO_SUSPENDIDO, readySuspendedQueue, "readySuspendedQueue");
@@ -698,7 +726,7 @@ public class OperatingSystem {
      * Restaura un proceso suspendido cuando existe capacidad disponible en memoria.
      */
     private void restoreSuspendedProcessIfPossible() {
-        if (processesInMemory >= MAX_PROCESSES_IN_MEMORY) {
+        if (processesInMemory >= maxProcessesInMemory) {
             return;
         }
         ProcessControlBlock candidate = readySuspendedQueue.dequeue();
