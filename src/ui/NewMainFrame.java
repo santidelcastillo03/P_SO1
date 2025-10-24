@@ -74,32 +74,32 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel23 = new javax.swing.JLabel();
         jLabel24 = new javax.swing.JLabel();
         jLabel25 = new javax.swing.JLabel();
-        jLabel26 = new javax.swing.JLabel();
-        jLabel27 = new javax.swing.JLabel();
-        jLabel28 = new javax.swing.JLabel();
-        jLabel29 = new javax.swing.JLabel();
-        jLabel30 = new javax.swing.JLabel();
-        jLabel31 = new javax.swing.JLabel();
-        jLabel32 = new javax.swing.JLabel();
+        currentCycleLabel = new javax.swing.JLabel();
+        modeLabel = new javax.swing.JLabel();
+        totalLabel = new javax.swing.JLabel();
+        marLabel = new javax.swing.JLabel();
+        pcLabel = new javax.swing.JLabel();
+        pidLabel = new javax.swing.JLabel();
+        processLabel = new javax.swing.JLabel();
         QueuesPanel = new javax.swing.JPanel();
         jLabel33 = new javax.swing.JLabel();
         jLabel34 = new javax.swing.JLabel();
         jLabel35 = new javax.swing.JLabel();
         jLabel36 = new javax.swing.JLabel();
         jScrollPane6 = new javax.swing.JScrollPane();
-        jList1 = new javax.swing.JList<>();
+        listosList = new javax.swing.JList<>();
         jScrollPane7 = new javax.swing.JScrollPane();
-        jList2 = new javax.swing.JList<>();
+        bloqList = new javax.swing.JList<>();
         jScrollPane8 = new javax.swing.JScrollPane();
-        jList3 = new javax.swing.JList<>();
+        finishedList = new javax.swing.JList<>();
         jScrollPane9 = new javax.swing.JScrollPane();
-        jList4 = new javax.swing.JList<>();
+        susList = new javax.swing.JList<>();
         jPanel1 = new javax.swing.JPanel();
         saveFile = new javax.swing.JButton();
         loadFile = new javax.swing.JButton();
         Logs = new javax.swing.JPanel();
-        jScrollPane5 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        logList = new javax.swing.JList<>();
         Charts = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -124,6 +124,11 @@ public class NewMainFrame extends javax.swing.JFrame {
         ControlsPanel.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 50, 110, 20));
 
         policySelector.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        policySelector.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                policySelectorActionPerformed(evt);
+            }
+        });
         ControlsPanel.add(policySelector, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 50, 690, -1));
 
         jLabel3.setForeground(new java.awt.Color(255, 255, 255));
@@ -171,10 +176,20 @@ public class NewMainFrame extends javax.swing.JFrame {
 
         pauseBtn.setText("Pausar");
         pauseBtn.setPreferredSize(new java.awt.Dimension(73, 23));
+        pauseBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pauseBtnActionPerformed(evt);
+            }
+        });
         ControlsPanel.add(pauseBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 180, -1, -1));
 
         StartBtn.setText("Iniciar");
         StartBtn.setPreferredSize(new java.awt.Dimension(73, 23));
+        StartBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                StartBtnActionPerformed(evt);
+            }
+        });
         ControlsPanel.add(StartBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 180, -1, -1));
 
         restartBtn.setText("Reiniciar");
@@ -195,6 +210,12 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel13.setForeground(new java.awt.Color(255, 255, 255));
         jLabel13.setText("Nombre:");
         ControlsPanel.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 240, 50, 20));
+
+        processNameField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                processNameFieldActionPerformed(evt);
+            }
+        });
         ControlsPanel.add(processNameField, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 240, 490, -1));
 
         jLabel14.setForeground(new java.awt.Color(255, 255, 255));
@@ -229,10 +250,20 @@ public class NewMainFrame extends javax.swing.JFrame {
         ControlsPanel.add(jLabel18, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 300, 80, 20));
 
         processType.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        processType.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                processTypeActionPerformed(evt);
+            }
+        });
         ControlsPanel.add(processType, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 270, 130, -1));
         ControlsPanel.add(ioDurationSpinner, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 300, 130, -1));
 
         Create20ProcessBtn.setText("Crear 20 Procesos");
+        Create20ProcessBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                Create20ProcessBtnActionPerformed(evt);
+            }
+        });
         ControlsPanel.add(Create20ProcessBtn, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 310, -1, -1));
 
         Simulacion.add(ControlsPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 1030, 350));
@@ -269,33 +300,33 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel25.setText("Modo:");
         CpuPanel.add(jLabel25, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 210, -1, -1));
 
-        jLabel26.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel26.setText("0");
-        CpuPanel.add(jLabel26, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 180, 60, -1));
+        currentCycleLabel.setForeground(new java.awt.Color(255, 255, 255));
+        currentCycleLabel.setText("0");
+        CpuPanel.add(currentCycleLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 180, 60, -1));
 
-        jLabel27.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel27.setText("OS");
-        CpuPanel.add(jLabel27, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 210, 60, -1));
+        modeLabel.setForeground(new java.awt.Color(255, 255, 255));
+        modeLabel.setText("OS");
+        CpuPanel.add(modeLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 210, 60, -1));
 
-        jLabel28.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel28.setText("--");
-        CpuPanel.add(jLabel28, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 150, 60, -1));
+        totalLabel.setForeground(new java.awt.Color(255, 255, 255));
+        totalLabel.setText("--");
+        CpuPanel.add(totalLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 150, 60, -1));
 
-        jLabel29.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel29.setText("--");
-        CpuPanel.add(jLabel29, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 120, 60, -1));
+        marLabel.setForeground(new java.awt.Color(255, 255, 255));
+        marLabel.setText("--");
+        CpuPanel.add(marLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 120, 60, -1));
 
-        jLabel30.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel30.setText("--");
-        CpuPanel.add(jLabel30, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 90, 60, -1));
+        pcLabel.setForeground(new java.awt.Color(255, 255, 255));
+        pcLabel.setText("--");
+        CpuPanel.add(pcLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 90, 60, -1));
 
-        jLabel31.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel31.setText("--");
-        CpuPanel.add(jLabel31, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 60, 60, -1));
+        pidLabel.setForeground(new java.awt.Color(255, 255, 255));
+        pidLabel.setText("--");
+        CpuPanel.add(pidLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 60, 60, -1));
 
-        jLabel32.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel32.setText("N/A");
-        CpuPanel.add(jLabel32, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 30, 60, -1));
+        processLabel.setForeground(new java.awt.Color(255, 255, 255));
+        processLabel.setText("N/A");
+        CpuPanel.add(processLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 30, 60, -1));
 
         Simulacion.add(CpuPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(860, 370, 180, 240));
 
@@ -327,39 +358,39 @@ public class NewMainFrame extends javax.swing.JFrame {
         jLabel36.setText("Bloqueados");
         QueuesPanel.add(jLabel36, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 30, 110, -1));
 
-        jList1.setModel(new javax.swing.AbstractListModel<String>() {
+        listosList.setModel(new javax.swing.AbstractListModel<String>() {
             String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
             public int getSize() { return strings.length; }
             public String getElementAt(int i) { return strings[i]; }
         });
-        jScrollPane6.setViewportView(jList1);
+        jScrollPane6.setViewportView(listosList);
 
         QueuesPanel.add(jScrollPane6, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, 100, 160));
 
-        jList2.setModel(new javax.swing.AbstractListModel<String>() {
+        bloqList.setModel(new javax.swing.AbstractListModel<String>() {
             String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
             public int getSize() { return strings.length; }
             public String getElementAt(int i) { return strings[i]; }
         });
-        jScrollPane7.setViewportView(jList2);
+        jScrollPane7.setViewportView(bloqList);
 
         QueuesPanel.add(jScrollPane7, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 60, 100, 160));
 
-        jList3.setModel(new javax.swing.AbstractListModel<String>() {
+        finishedList.setModel(new javax.swing.AbstractListModel<String>() {
             String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
             public int getSize() { return strings.length; }
             public String getElementAt(int i) { return strings[i]; }
         });
-        jScrollPane8.setViewportView(jList3);
+        jScrollPane8.setViewportView(finishedList);
 
         QueuesPanel.add(jScrollPane8, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 60, 100, 160));
 
-        jList4.setModel(new javax.swing.AbstractListModel<String>() {
+        susList.setModel(new javax.swing.AbstractListModel<String>() {
             String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
             public int getSize() { return strings.length; }
             public String getElementAt(int i) { return strings[i]; }
         });
-        jScrollPane9.setViewportView(jList4);
+        jScrollPane9.setViewportView(susList);
 
         QueuesPanel.add(jScrollPane9, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 60, 100, 160));
 
@@ -368,6 +399,11 @@ public class NewMainFrame extends javax.swing.JFrame {
         jPanel1.setBackground(new java.awt.Color(53, 73, 133));
 
         saveFile.setText("Guardar");
+        saveFile.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveFileActionPerformed(evt);
+            }
+        });
 
         loadFile.setText("Cargar");
         loadFile.addActionListener(new java.awt.event.ActionListener() {
@@ -404,11 +440,14 @@ public class NewMainFrame extends javax.swing.JFrame {
         Logs.setBackground(new java.awt.Color(53, 73, 133));
         Logs.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jTextArea1.setColumns(20);
-        jTextArea1.setRows(5);
-        jScrollPane5.setViewportView(jTextArea1);
+        logList.setModel(new javax.swing.AbstractListModel<String>() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public String getElementAt(int i) { return strings[i]; }
+        });
+        jScrollPane1.setViewportView(logList);
 
-        Logs.add(jScrollPane5, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 20, 990, 560));
+        Logs.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 30, 970, 540));
 
         jTabbedPane1.addTab("Configuracion", Logs);
 
@@ -432,6 +471,34 @@ public class NewMainFrame extends javax.swing.JFrame {
     private void loadFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadFileActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_loadFileActionPerformed
+
+    private void policySelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_policySelectorActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_policySelectorActionPerformed
+
+    private void StartBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_StartBtnActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_StartBtnActionPerformed
+
+    private void pauseBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pauseBtnActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_pauseBtnActionPerformed
+
+    private void processNameFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_processNameFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_processNameFieldActionPerformed
+
+    private void processTypeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_processTypeActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_processTypeActionPerformed
+
+    private void Create20ProcessBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Create20ProcessBtnActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_Create20ProcessBtnActionPerformed
+
+    private void saveFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveFileActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_saveFileActionPerformed
 
     /**
      * @param args the command line arguments
@@ -482,7 +549,10 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JPanel Simulacion;
     private javax.swing.JButton StartBtn;
     private javax.swing.JSpinner arrivalSpinner;
+    private javax.swing.JList<String> bloqList;
     private javax.swing.JButton createProcessBtn;
+    private javax.swing.JLabel currentCycleLabel;
+    private javax.swing.JList<String> finishedList;
     private javax.swing.JSpinner instructionSpinner;
     private javax.swing.JSpinner ioCycleSpinner;
     private javax.swing.JSpinner ioDurationSpinner;
@@ -503,14 +573,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel23;
     private javax.swing.JLabel jLabel24;
     private javax.swing.JLabel jLabel25;
-    private javax.swing.JLabel jLabel26;
-    private javax.swing.JLabel jLabel27;
-    private javax.swing.JLabel jLabel28;
-    private javax.swing.JLabel jLabel29;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel30;
-    private javax.swing.JLabel jLabel31;
-    private javax.swing.JLabel jLabel32;
     private javax.swing.JLabel jLabel33;
     private javax.swing.JLabel jLabel34;
     private javax.swing.JLabel jLabel35;
@@ -521,31 +584,35 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
-    private javax.swing.JList<String> jList1;
-    private javax.swing.JList<String> jList2;
-    private javax.swing.JList<String> jList3;
-    private javax.swing.JList<String> jList4;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane5;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane6;
     private javax.swing.JScrollPane jScrollPane7;
     private javax.swing.JScrollPane jScrollPane8;
     private javax.swing.JScrollPane jScrollPane9;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTextArea jTextArea1;
     private javax.swing.JSpinner level0Spinner;
     private javax.swing.JSpinner level1Spinner;
     private javax.swing.JSpinner level2Spinner;
     private javax.swing.JSpinner level3Spinner;
+    private javax.swing.JList<String> listosList;
     private javax.swing.JButton loadFile;
+    private javax.swing.JList<String> logList;
+    private javax.swing.JLabel marLabel;
     private javax.swing.JSpinner maxMemorySpinner;
+    private javax.swing.JLabel modeLabel;
     private javax.swing.JLabel msLabel;
     private javax.swing.JButton pauseBtn;
+    private javax.swing.JLabel pcLabel;
+    private javax.swing.JLabel pidLabel;
     private javax.swing.JComboBox<String> policySelector;
+    private javax.swing.JLabel processLabel;
     private javax.swing.JTextField processNameField;
     private javax.swing.JComboBox<String> processType;
     private javax.swing.JButton restartBtn;
     private javax.swing.JButton saveFile;
     private javax.swing.JSlider speedSlider;
+    private javax.swing.JList<String> susList;
+    private javax.swing.JLabel totalLabel;
     // End of variables declaration//GEN-END:variables
 }
