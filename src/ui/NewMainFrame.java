@@ -359,79 +359,138 @@ public class NewMainFrame extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Inicia el hilo actualizador de la interfaz gráfica.
+     * Este hilo se encarga de refrescar periódicamente los componentes visuales
+     * de la CPU y las colas de procesos mientras la simulación está corriendo.
+     * Solo crea un nuevo hilo si no existe uno activo.
+     */
     private void startUIUpdater() {
+        // Verifica si ya existe un hilo actualizador en ejecución
         if (uiUpdaterThread != null && uiUpdaterThread.isAlive()) {
             return;
         }
+        // Crea un hilo daemon que ejecuta el método runUIUpdater
         uiUpdaterThread = new Thread(this::runUIUpdater, "UIUpdater-Thread");
         uiUpdaterThread.setDaemon(true);
         uiUpdaterThread.start();
     }
 
+    /**
+     * Bucle principal del actualizador de UI que se ejecuta en un hilo separado.
+     * Refresca la interfaz cada 100ms mientras el reloj del sistema operativo
+     * esté activo. Usa SwingUtilities.invokeLater para asegurar que las
+     * actualizaciones de la UI ocurran en el Event Dispatch Thread (EDT).
+     */
     private void runUIUpdater() {
+        // Continúa mientras el hilo no esté interrumpido y el reloj esté corriendo
         while (!Thread.currentThread().isInterrupted() && operatingSystem.isClockRunning()) {
             try {
+                // Programa la actualización de la UI en el Event Dispatch Thread
+                // Esto es necesario porque Swing no es thread-safe
                 javax.swing.SwingUtilities.invokeLater(this::updateCPUPanel);
-                Thread.sleep(100L);
+                // Espera 100ms antes de la próxima actualización
+                Thread.sleep(50L);
             } catch (InterruptedException ex) {
+                // Si el hilo es interrumpido, restaura el estado de interrupción y sale
                 Thread.currentThread().interrupt();
                 break;
             }
         }
     }
 
+    /**
+     * Actualiza todos los componentes visuales del panel de CPU y las colas.
+     * Este método se ejecuta en el Event Dispatch Thread (EDT) gracias a
+     * SwingUtilities.invokeLater. Actualiza la información del proceso en ejecución,
+     * el ciclo global actual, y las cuatro colas de procesos.
+     */
     private void updateCPUPanel() {
         if (cpu == null) {
             return;
         }
+        // Obtiene el proceso actualmente en ejecución en la CPU
         ProcessControlBlock currentProcess = cpu.getCurrentProcess();
         if (currentProcess == null) {
+            // Si no hay proceso en ejecución, muestra valores por defecto
             processLabel.setText("N/A");
             pidLabel.setText("--");
             pcLabel.setText("--");
             marLabel.setText("--");
             modeLabel.setText("OS");
         } else {
+            // Si hay un proceso en ejecución, muestra sus datos
             processLabel.setText(currentProcess.getProcessName());
             pidLabel.setText(String.valueOf(currentProcess.getProcessId()));
             pcLabel.setText(String.valueOf(currentProcess.getProgramCounter()));
             marLabel.setText(String.valueOf(currentProcess.getMemoryAddressRegister()));
             modeLabel.setText("Usuario");
         }
+        // Actualiza el contador de ciclos globales
         currentCycleLabel.setText(String.valueOf(operatingSystem.getGlobalClockCycle()));
+        // Actualiza todas las colas de procesos
         updateProcessQueues();
     }
 
+    /**
+     * Actualiza las cuatro listas de colas de procesos en la interfaz.
+     * Obtiene snapshots (copias) de cada cola desde el sistema operativo
+     * y actualiza los componentes JList correspondientes.
+     */
     private void updateProcessQueues() {
         if (operatingSystem == null) {
             return;
         }
+        // Actualiza la lista de procesos listos
         updateQueueList(listosList, operatingSystem.getReadyQueueSnapshot());
+        // Actualiza la lista de procesos bloqueados
         updateQueueList(bloqList, operatingSystem.getBlockedQueueSnapshot());
+        // Actualiza la lista de procesos finalizados
         updateQueueList(finishedList, operatingSystem.getFinishedQueueSnapshot());
+        // Actualiza la lista de procesos suspendidos (listos + bloqueados)
         updateQueueList(susList, operatingSystem.getSuspendedQueuesSnapshot());
     }
 
+    /**
+     * Actualiza una lista específica de la UI con un arreglo de procesos.
+     * Crea un nuevo modelo de lista y lo llena con el nombre y PID de cada proceso.
+     *
+     * @param list el componente JList a actualizar
+     * @param processes arreglo de PCBs obtenido del sistema operativo
+     */
     private void updateQueueList(javax.swing.JList<String> list, ProcessControlBlock[] processes) {
+        // Crea un nuevo modelo para la lista
         javax.swing.DefaultListModel<String> model = new javax.swing.DefaultListModel<>();
         if (processes != null) {
+            // Recorre todos los procesos y los agrega al modelo
             for (ProcessControlBlock pcb : processes) {
                 if (pcb != null) {
+                    // Formato: "NombreProceso (PID:123)"
                     model.addElement(pcb.getProcessName() + " (PID:" + pcb.getProcessId() + ")");
                 }
             }
         }
+        // Asigna el nuevo modelo a la lista (esto actualiza la vista)
         list.setModel(model);
     }
 
+    /**
+     * Detiene el hilo actualizador de UI de forma ordenada.
+     * Interrumpe el hilo y espera hasta 500ms para que termine.
+     * Este método se llama cuando se pausa o reinicia la simulación.
+     */
     private void shutdownUIUpdater() {
         if (uiUpdaterThread != null && uiUpdaterThread.isAlive()) {
+            // Interrumpe el hilo para salir del bucle
             uiUpdaterThread.interrupt();
             try {
+                // Espera hasta 500ms para que el hilo termine
                 uiUpdaterThread.join(500L);
             } catch (InterruptedException ex) {
+                // Si este hilo es interrumpido mientras espera, restaura el estado
                 Thread.currentThread().interrupt();
             }
+            // Limpia la referencia al hilo
             uiUpdaterThread = null;
         }
     }
