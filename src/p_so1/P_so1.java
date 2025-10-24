@@ -4,18 +4,9 @@
  */
 package p_so1;
 
-import core.CPU;
-import core.OperatingSystem;
-import core.ProcessControlBlock;
-import scheduler.PolicyType;
-import util.IOHandler;
-import java.text.MessageFormat;
-import java.util.Scanner;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
+import ui.NewMainFrame;
 
+<<<<<<< HEAD
 /*
  * Simulador Interactivo de Algoritmos de Planificación de Procesos.
  * Permite seleccionar y ejecutar algoritmos de planificación individualmente
@@ -109,43 +100,23 @@ public class P_so1 {
      * Punto de entrada principal con menú interactivo.
      * @param args argumentos de línea de comandos (no utilizados)
      */
+=======
+/**
+ * Simulador de Planificación de Procesos con interfaz gráfica.
+ * 
+ *
+ * @author angel
+ */
+public class P_so1 {
+
+    
+>>>>>>> sdev
     public static void main(String[] args) {
-        configurarSalidaColoreada();
-        Scanner scanner = new Scanner(System.in);
-        boolean continuar = true;
-
-        imprimirBanner();
-
-        while (continuar) {
-            mostrarMenu();
-            int opcion = leerOpcion(scanner);
-
-            switch (opcion) {
-                case 1:
-                    ejecutarEscenario("FCFS (First Come First Served)", PolicyType.FCFS, SCENARIO_FCFS);
-                    break;
-                case 2:
-                    ejecutarEscenario("SPN (Shortest Process Next)", PolicyType.SPN, SCENARIO_SPN);
-                    break;
-                case 3:
-                    ejecutarEscenario("HRRN (Highest Response Ratio Next)", PolicyType.HRRN, SCENARIO_HRRN);
-                    break;
-                case 4:
-                    ejecutarEscenario("SRTF (Shortest Remaining Time First)", PolicyType.SRT, SCENARIO_SRTF);
-                    break;
-                case 5:
-                    ejecutarEscenario("Round Robin (Quantum=3)", PolicyType.ROUND_ROBIN, SCENARIO_RR);
-                    break;
-                case 6:
-                    ejecutarEscenario("Feedback (Multilevel Queues)", PolicyType.FEEDBACK, SCENARIO_FEEDBACK);
-                    break;
-                case 7:
-                    continuar = false;
-                    imprimirConColor(COLOR_SUMMARY, "¡Hasta luego!");
-                    break;
-                default:
-                    imprimirConColor(COLOR_ERROR, "❌ Opción no válida. Intente nuevamente.\n");
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new NewMainFrame().setVisible(true);
             }
+<<<<<<< HEAD
 
             if (continuar && opcion >= 1 && opcion <= 6) {
                 imprimirConColor(COLOR_QUEUE, "\nPresione Enter para volver al menú...");
@@ -799,5 +770,8 @@ public class P_so1 {
             }
             return mensaje != null ? mensaje : "";
         }
+=======
+        });
+>>>>>>> sdev
     }
 }
