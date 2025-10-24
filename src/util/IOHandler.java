@@ -10,14 +10,13 @@ import core.ProcessControlBlock;
 import datastructures.CustomQueue;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit; //enum that provides a set of time units
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * IOHandler mantiene una cola de procesos esperando la finalización de eventos de I/O y los procesa de forma asíncrona.
- * <p>
  * Permite encolar procesos bloqueados por entrada/salida, simular el retardo de I/O y reinsertarlos en la cola de listos del sistema operativo.
- * </p>
  */
 public class IOHandler implements Runnable {
 
@@ -101,26 +100,42 @@ public class IOHandler implements Runnable {
     public void run() {
         while (running || queuedProcessCount() > 0) {
             try {
-                pendingProcesses.acquire();
+                // Intentar adquirir un permiso del semáforo con timeout
+                if (!pendingProcesses.tryAcquire(1, java.util.concurrent.TimeUnit.SECONDS)) {
+                    // Si el timeout se agota y no está corriendo, salir del bucle
+                    if (!running && queuedProcessCount() == 0) {
+                        break;
+                    }
+                    continue;
+                }
+                
                 if (!running && queuedProcessCount() == 0) {
                     break;
                 }
+                
                 ProcessControlBlock pcb = dequeueProcess();
                 if (pcb == null) {
                     continue;
                 }
+                
                 long sleepTime = Math.max(0L, pcb.getIoDuration() * cycleDurationMillis);
                 if (sleepTime > 0) {
                     Thread.sleep(sleepTime);
                 }
+                
                 operatingSystem.completeIo(pcb);
                 LOGGER.info(() -> String.format("Proceso %s (#%d) completó I/O y retorna a readyQueue",
                         pcb.getProcessName(),
                         pcb.getProcessId()));
             } catch (InterruptedException ex) {
+                // La interrupción es normal durante el cierre
+                LOGGER.log(Level.FINE, "Hilo de IOHandler interrumpido durante shutdown", ex);
+                // Restaurar el estado de interrupción
                 Thread.currentThread().interrupt();
-                running = false;
-                LOGGER.log(Level.WARNING, "Hilo de IOHandler interrumpido", ex);
+                // Si estamos deteniendo, salir de forma controlada
+                if (!running) {
+                    break;
+                }
             }
         }
         LOGGER.info("IOHandler detenido");

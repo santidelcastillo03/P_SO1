@@ -18,9 +18,10 @@ import javax.swing.SpinnerNumberModel;
  */
 public class NewMainFrame extends javax.swing.JFrame {
 
-    private final OperatingSystem operatingSystem;
-    private final CPU cpu;
-    private final IOHandler ioHandler;
+    private OperatingSystem operatingSystem;
+    private CPU cpu;
+    private IOHandler ioHandler;
+    private Thread ioThread;
     private boolean internalPolicyUpdate;
     private static final String[] POLICY_OPTIONS = {
         "FCFS",
@@ -35,14 +36,12 @@ public class NewMainFrame extends javax.swing.JFrame {
      * Creates new form NewMainFrame
      */
     public NewMainFrame() {
-        operatingSystem = new OperatingSystem();
-        ioHandler = new IOHandler(operatingSystem, 100L);
-        cpu = new CPU(operatingSystem, ioHandler);
-        operatingSystem.attachCpu(cpu);
+        initializeSimulationComponents();
         initComponents();
         configureSpinners();
         configurePolicySelector();
         configureSpeedSlider();
+        updateSimulationControls();
     }
 
     private void configureSpinners() {
@@ -72,11 +71,14 @@ public class NewMainFrame extends javax.swing.JFrame {
         long currentCycleDuration = operatingSystem.getCycleDurationMillis();
         int initialValue = (int) Math.max(0L, Math.min(2000L, currentCycleDuration));
         speedSlider.setValue(initialValue);
+        operatingSystem.setCycleDurationMillis(initialValue);
+        ioHandler.setCycleDurationMillis(initialValue);
         updateSpeedLabel(initialValue);
         speedSlider.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
                 int value = speedSlider.getValue();
                 operatingSystem.setCycleDurationMillis(value);
+                ioHandler.setCycleDurationMillis(value);
                 updateSpeedLabel(value);
             }
         });
@@ -143,6 +145,105 @@ public class NewMainFrame extends javax.swing.JFrame {
             default:
                 return PolicyType.FCFS;
         }
+    }
+
+    private void initializeSimulationComponents() {
+        operatingSystem = new OperatingSystem();
+        int speedValue = resolveCurrentSpeedSelection();
+        ioHandler = new IOHandler(operatingSystem, speedValue);
+        cpu = new CPU(operatingSystem, ioHandler);
+        operatingSystem.attachCpu(cpu);
+        ioThread = null;
+    }
+
+    private int resolveCurrentSpeedSelection() {
+        return speedSlider != null ? speedSlider.getValue() : 100;
+    }
+
+    private void ensureIoThread() {
+        if (ioHandler == null) {
+            return;
+        }
+        if (ioThread == null || !ioThread.isAlive()) {
+            ioThread = new Thread(ioHandler, "IOHandler-Thread");
+            ioThread.setDaemon(true);
+            ioThread.start();
+        }
+    }
+
+    private void startSimulation() {
+        int value = speedSlider.getValue();
+        operatingSystem.setCycleDurationMillis(value);
+        ioHandler.setCycleDurationMillis(value);
+        ensureIoThread();
+        operatingSystem.startSystemClock();
+        updateSimulationControls();
+    }
+
+    private void pauseSimulation() {
+        operatingSystem.stopSystemClock();
+        updateSimulationControls();
+    }
+
+    private void restartSimulation() {
+        operatingSystem.stopSystemClock();
+        shutdownIoHandler();
+        String selectedLabel = (String) policySelector.getSelectedItem();
+        int rrValue = ((Number) RRQuantumSpinner.getValue()).intValue();
+        int[] feedbackValues = collectFeedbackQuanta();
+        initializeSimulationComponents();
+        int speedValue = speedSlider.getValue();
+        operatingSystem.setCycleDurationMillis(speedValue);
+        ioHandler.setCycleDurationMillis(speedValue);
+        updateSpeedLabel(speedValue);
+        RRQuantumSpinner.setValue(rrValue);
+        level0Spinner.setValue(feedbackValues[0]);
+        level1Spinner.setValue(feedbackValues[1]);
+        level2Spinner.setValue(feedbackValues[2]);
+        level3Spinner.setValue(feedbackValues[3]);
+        String targetLabel = selectedLabel != null ? selectedLabel : POLICY_OPTIONS[0];
+        internalPolicyUpdate = true;
+        policySelector.setSelectedItem(targetLabel);
+        internalPolicyUpdate = false;
+        PolicyType policy = resolvePolicy(targetLabel);
+        updatePolicyControls(policy);
+        applyPolicySelection(policy);
+        updateSimulationControls();
+    }
+
+    private void shutdownIoHandler() {
+        if (ioHandler != null) {
+            ioHandler.stop();
+        }
+        if (ioThread != null && ioThread.isAlive()) {
+            try {
+                // Esperar a que el hilo termine de forma natural
+                ioThread.join(1000L);
+            } catch (InterruptedException ex) {
+                // Si nos interrumpen esperando, restaurar el estado de interrupción
+                Thread.currentThread().interrupt();
+            }
+            
+            // Si el hilo aún está vivo después del timeout, hacer una interrupción
+            if (ioThread.isAlive()) {
+                ioThread.interrupt();
+                try {
+                    // Dar un poco más de tiempo para que responda a la interrupción
+                    ioThread.join(500L);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            
+            ioThread = null;
+        }
+    }
+
+    private void updateSimulationControls() {
+        boolean running = operatingSystem != null && operatingSystem.isClockRunning();
+        StartBtn.setEnabled(!running);
+        pauseBtn.setEnabled(running);
+        restartBtn.setEnabled(true);
     }
 
     /**
@@ -294,8 +395,8 @@ public class NewMainFrame extends javax.swing.JFrame {
         ControlsPanel.add(speedSlider, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 110, 670, -1));
 
         msLabel.setForeground(new java.awt.Color(255, 255, 255));
-        msLabel.setText("-- ms");
-        ControlsPanel.add(msLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 110, 50, 20));
+        msLabel.setText("--         ms");
+        ControlsPanel.add(msLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(820, 110, 100, 20));
 
         jLabel11.setForeground(new java.awt.Color(255, 255, 255));
         jLabel11.setText("Procesos en memoria:");
@@ -593,7 +694,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_createProcessBtnActionPerformed
 
     private void restartBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_restartBtnActionPerformed
-        // TODO add your handling code here:
+        restartSimulation();
     }//GEN-LAST:event_restartBtnActionPerformed
 
     private void loadFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadFileActionPerformed
@@ -614,11 +715,11 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_policySelectorActionPerformed
 
     private void StartBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_StartBtnActionPerformed
-        // TODO add your handling code here:
+        startSimulation();
     }//GEN-LAST:event_StartBtnActionPerformed
 
     private void pauseBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pauseBtnActionPerformed
-        // TODO add your handling code here:
+        pauseSimulation();
     }//GEN-LAST:event_pauseBtnActionPerformed
 
     private void processNameFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_processNameFieldActionPerformed
