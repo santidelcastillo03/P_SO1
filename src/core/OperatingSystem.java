@@ -412,6 +412,14 @@ public class OperatingSystem {
     }
 
     /**
+     * Obtiene la duración configurada de cada ciclo del reloj en milisegundos.
+     * @return duración del ciclo en milisegundos
+     */
+    public long getCycleDurationMillis() {
+        return cycleDurationMillis;
+    }
+
+    /**
      * Obtiene el número acumulado de ciclos globales ejecutados por el reloj.
      * @return contador de ciclos globales
      */

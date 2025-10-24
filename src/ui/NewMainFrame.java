@@ -42,6 +42,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         initComponents();
         configureSpinners();
         configurePolicySelector();
+        configureSpeedSlider();
     }
 
     private void configureSpinners() {
@@ -63,6 +64,26 @@ public class NewMainFrame extends javax.swing.JFrame {
         PolicyType initialPolicy = resolvePolicy(POLICY_OPTIONS[0]);
         updatePolicyControls(initialPolicy);
         applyPolicySelection(initialPolicy);
+    }
+
+    private void configureSpeedSlider() {
+        speedSlider.setMinimum(0);
+        speedSlider.setMaximum(2000);
+        long currentCycleDuration = operatingSystem.getCycleDurationMillis();
+        int initialValue = (int) Math.max(0L, Math.min(2000L, currentCycleDuration));
+        speedSlider.setValue(initialValue);
+        updateSpeedLabel(initialValue);
+        speedSlider.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                int value = speedSlider.getValue();
+                operatingSystem.setCycleDurationMillis(value);
+                updateSpeedLabel(value);
+            }
+        });
+    }
+
+    private void updateSpeedLabel(int value) {
+        msLabel.setText(value + " ms");
     }
 
     private void updatePolicyControls(PolicyType policyType) {
