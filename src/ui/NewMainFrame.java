@@ -9,6 +9,7 @@ import core.OperatingSystem;
 import core.ProcessControlBlock;
 import scheduler.PolicyType;
 import util.IOHandler;
+import util.RandomProcessGenerator;
 import datastructures.ArrayList;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
@@ -37,6 +38,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private Thread arrivalCheckerThread;
     private boolean internalPolicyUpdate;
     private ArrayList<PendingProcess> pendingProcesses;
+    private RandomProcessGenerator processGenerator;
     private static final String[] POLICY_OPTIONS = {
         "FCFS",
         "Round Robin",
@@ -51,6 +53,7 @@ public class NewMainFrame extends javax.swing.JFrame {
      */
     public NewMainFrame() {
         pendingProcesses = new ArrayList<>();
+        processGenerator = new RandomProcessGenerator();
         initializeSimulationComponents();
         initComponents();
         configureSpinners();
@@ -362,7 +365,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         try {
             String processName = processNameField.getText().trim();
             if (processName.isEmpty()) {
-                processName = "Proceso-" + System.currentTimeMillis();
+                processName = "P-" + System.currentTimeMillis();
             }
             int arrivalCycle = ((Number) arrivalSpinner.getValue()).intValue();
             int totalInstructions = ((Number) instructionSpinner.getValue()).intValue();
@@ -403,6 +406,42 @@ public class NewMainFrame extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error al crear proceso", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error inesperado: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void create20RandomProcesses() {
+        try {
+            long currentCycle = operatingSystem.getGlobalClockCycle();
+            int processesCreated = 0;
+            int processesScheduled = 0;
+            for (int i = 0; i < 20; i++) {
+                ProcessControlBlock pcb = processGenerator.generateRandomProcess();
+                int arrivalCycle = processGenerator.generateRandomArrivalCycle(
+                    (int) currentCycle,
+                    (int) currentCycle + 50
+                );
+                if (arrivalCycle <= currentCycle) {
+                    operatingSystem.moveToReady(pcb);
+                    processesCreated++;
+                } else {
+                    synchronized (pendingProcesses) {
+                        pendingProcesses.add(new PendingProcess(pcb, arrivalCycle));
+                    }
+                    processesScheduled++;
+                }
+            }
+            JOptionPane.showMessageDialog(this,
+                "20 procesos aleatorios creados exitosamente:\n" +
+                "- Agregados inmediatamente: " + processesCreated + "\n" +
+                "- Programados para arribar: " + processesScheduled + "\n" +
+                "Rango de arribo: ciclo " + currentCycle + " a " + (currentCycle + 50),
+                "Procesos Creados",
+                JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                "Error al crear procesos aleatorios: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -891,7 +930,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_processTypeActionPerformed
 
     private void Create20ProcessBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Create20ProcessBtnActionPerformed
-        // TODO add your handling code here:
+        create20RandomProcesses();
     }//GEN-LAST:event_Create20ProcessBtnActionPerformed
 
     private void saveFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveFileActionPerformed
