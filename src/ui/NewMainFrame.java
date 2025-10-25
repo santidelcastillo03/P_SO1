@@ -20,6 +20,11 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartFrame;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PiePlot;
+import org.jfree.data.general.DefaultPieDataset;
 
 /**
  *
@@ -767,6 +772,7 @@ public class NewMainFrame extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         logTextArea = new javax.swing.JTextArea();
         Charts = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -1088,6 +1094,16 @@ public class NewMainFrame extends javax.swing.JFrame {
 
         Charts.setBackground(new java.awt.Color(53, 73, 133));
         Charts.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jButton1.setText("Comparacion I/O Bound - CPU Bound");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+        Charts.add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 40, 470, 70));
+
         jTabbedPane1.addTab("Graficos", Charts);
 
         getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, -1, -1));
@@ -1267,6 +1283,46 @@ public class NewMainFrame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_saveFileActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        int ioBoundCount = 0;
+    int cpuBoundCount = 0;
+    if (operatingSystem != null) {
+        ProcessControlBlock[] finished = operatingSystem.getFinishedQueueSnapshot();
+        if (finished != null) {
+            for (ProcessControlBlock pcb : finished) {
+                if (pcb != null) {
+                    if (pcb.isIOBound()) {
+                        ioBoundCount++;
+                    } else {
+                        cpuBoundCount++;
+                    }
+                }
+            }
+        }
+    }
+
+    // --- PASO 3: Crear el dataset ---
+    DefaultPieDataset pieDataset = new DefaultPieDataset();
+    if (ioBoundCount > 0 || cpuBoundCount > 0) {
+         pieDataset.setValue("CPU Bound (" + cpuBoundCount + ")", cpuBoundCount);
+         pieDataset.setValue("I/O Bound (" + ioBoundCount + ")", ioBoundCount);
+    } else {
+         pieDataset.setValue("No hay procesos terminados", 1);
+    }
+
+
+    // --- PASO 4 y 5: Crear y mostrar el ChartFrame ---
+    JFreeChart chart = ChartFactory.createPieChart(
+        "Distribución Procesos Terminados (Actual)", // Título
+        pieDataset, true, true, false);
+
+    ChartFrame frame = new ChartFrame("Gráfico Distribución", chart);
+    frame.pack(); // Ajusta el tamaño automáticamente
+    frame.setLocationRelativeTo(this); // Centra la ventana nueva
+    frame.setVisible(true); // Muestra la ventana separada
+}
+    }//GEN-LAST:event_jButton1ActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1323,6 +1379,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JSpinner instructionSpinner;
     private javax.swing.JSpinner ioCycleSpinner;
     private javax.swing.JSpinner ioDurationSpinner;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
