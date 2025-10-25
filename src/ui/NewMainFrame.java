@@ -47,6 +47,9 @@ public class NewMainFrame extends javax.swing.JFrame {
     private ArrayList<PendingProcess> pendingProcesses;
     private RandomProcessGenerator processGenerator;
     private LogCapture logCapture;
+    private util.MetricsCalculator.PolicyMetrics[] policyMetricsArray;
+    private int policyMetricsCount;
+    private util.MetricsCalculator.PolicyMetrics currentPolicyMetrics;
     private static final String[] POLICY_OPTIONS = {
         "FCFS",
         "Round Robin",
@@ -62,6 +65,9 @@ public class NewMainFrame extends javax.swing.JFrame {
     public NewMainFrame() {
         pendingProcesses = new ArrayList<>();
         processGenerator = new RandomProcessGenerator();
+        policyMetricsArray = new util.MetricsCalculator.PolicyMetrics[6];
+        policyMetricsCount = 0;
+        currentPolicyMetrics = null;
         initializeSimulationComponents();
         initComponents();
         logCapture = new LogCapture(logTextArea);
@@ -191,6 +197,10 @@ public class NewMainFrame extends javax.swing.JFrame {
 
     private void applyPolicySelection(PolicyType policyType) {
         try {
+            boolean wasRunning = operatingSystem.isClockRunning();
+            if (wasRunning) {
+                capturePolicyMetrics();
+            }
             if (policyType == PolicyType.ROUND_ROBIN) {
                 int quantum = ((Number) RRQuantumSpinner.getValue()).intValue();
                 operatingSystem.setRoundRobinQuantum(quantum);
@@ -200,6 +210,12 @@ public class NewMainFrame extends javax.swing.JFrame {
                 operatingSystem.setFeedbackQuanta(feedbackValues[0], feedbackValues[1], feedbackValues[2], feedbackValues[3]);
             }
             operatingSystem.setSchedulingPolicy(policyType);
+            if (wasRunning) {
+                String policyLabel = (String) policySelector.getSelectedItem();
+                if (policyLabel != null) {
+                    startPolicyTracking(policyLabel);
+                }
+            }
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Configuración inválida", JOptionPane.ERROR_MESSAGE);
         }
@@ -291,16 +307,23 @@ public class NewMainFrame extends javax.swing.JFrame {
         startArrivalChecker();
         startUIUpdater();
         operatingSystem.startSystemClock();
+        String selectedPolicy = (String) policySelector.getSelectedItem();
+        if (selectedPolicy != null && currentPolicyMetrics == null) {
+            startPolicyTracking(selectedPolicy);
+        }
         updateSimulationControls();
     }
 
     private void pauseSimulation() {
         operatingSystem.stopSystemClock();
         shutdownUIUpdater();
+        capturePolicyMetrics();
         updateSimulationControls();
     }
 
     private void restartSimulation() {
+        capturePolicyMetrics();
+        currentPolicyMetrics = null;
         operatingSystem.stopSystemClock();
         shutdownIoHandler();
         shutdownArrivalChecker();
@@ -686,6 +709,165 @@ public class NewMainFrame extends javax.swing.JFrame {
     }
 
     /**
+     * Actualiza el gráfico de pastel con los tipos de procesos (I/O-bound vs CPU-bound)
+     * Recolecta todos los procesos del sistema y muestra un pie chart
+     */
+    private void updateProcessTypeChart() {
+        // Crear el objeto de conteo
+        util.MetricsCalculator.ProcessTypeCount count = new util.MetricsCalculator.ProcessTypeCount();
+
+        // Obtener el proceso actual en CPU
+        if (cpu != null) {
+            ProcessControlBlock currentProcess = cpu.getCurrentProcess();
+            util.MetricsCalculator.countSingleProcess(currentProcess, count);
+        }
+
+        // Obtener todos los snapshots de las colas
+        if (operatingSystem != null) {
+            ProcessControlBlock[] readyProcesses = operatingSystem.getReadyQueueSnapshot();
+            ProcessControlBlock[] blockedProcesses = operatingSystem.getBlockedQueueSnapshot();
+            ProcessControlBlock[] finishedProcesses = operatingSystem.getFinishedQueueSnapshot();
+            ProcessControlBlock[] suspendedProcesses = operatingSystem.getSuspendedQueuesSnapshot();
+
+            // Contar procesos de todas las colas
+            util.MetricsCalculator.ProcessTypeCount queuesCount =
+                util.MetricsCalculator.countProcessTypesFromMultipleQueues(
+                    readyProcesses,
+                    blockedProcesses,
+                    finishedProcesses,
+                    suspendedProcesses
+                );
+
+            // Sumar al conteo total
+            for (int i = 0; i < queuesCount.getIOBoundCount(); i++) {
+                count.incrementIOBound();
+            }
+            for (int i = 0; i < queuesCount.getCPUBoundCount(); i++) {
+                count.incrementCPUBound();
+            }
+        }
+
+        // Contar procesos pendientes
+        synchronized (pendingProcesses) {
+            for (int i = 0; i < pendingProcesses.size(); i++) {
+                PendingProcess pending = pendingProcesses.get(i);
+                if (pending != null && pending.pcb != null) {
+                    util.MetricsCalculator.countSingleProcess(pending.pcb, count);
+                }
+            }
+        }
+
+        // Crear el gráfico
+        org.jfree.chart.ChartPanel chartPanel;
+        if (count.getTotalCount() == 0) {
+            chartPanel = util.JFreeChart.createEmptyPieChart();
+        } else {
+            chartPanel = util.JFreeChart.createProcessTypePieChart(
+                count.getIOBoundCount(),
+                count.getCPUBoundCount()
+            );
+        }
+
+        // Actualizar el panel Chart1Panel
+        Chart1Panel.removeAll();
+        Chart1Panel.setLayout(new java.awt.BorderLayout());
+        Chart1Panel.add(chartPanel, java.awt.BorderLayout.CENTER);
+
+        // Agregar los botones en la parte inferior
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.add(G1UpdateBtn);
+        buttonPanel.add(RestartChart1Btn);
+        Chart1Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+
+        Chart1Panel.revalidate();
+        Chart1Panel.repaint();
+    }
+
+    private void startPolicyTracking(String policyName) {
+        if (operatingSystem == null) {
+            return;
+        }
+        capturePolicyMetrics();
+        currentPolicyMetrics = new util.MetricsCalculator.PolicyMetrics(policyName);
+        currentPolicyMetrics.setStartCycle(operatingSystem.getGlobalClockCycle());
+    }
+
+    private void capturePolicyMetrics() {
+        if (currentPolicyMetrics == null || operatingSystem == null) {
+            return;
+        }
+        long currentCycle = operatingSystem.getGlobalClockCycle();
+        currentPolicyMetrics.setEndCycle(currentCycle);
+        ProcessControlBlock[] finishedProcesses = operatingSystem.getFinishedQueueSnapshot();
+        if (finishedProcesses != null) {
+            currentPolicyMetrics.setCompletedProcesses(finishedProcesses.length);
+        }
+        boolean found = false;
+        for (int i = 0; i < policyMetricsCount; i++) {
+            if (policyMetricsArray[i] != null &&
+                policyMetricsArray[i].getPolicyName().equals(currentPolicyMetrics.getPolicyName())) {
+                policyMetricsArray[i] = currentPolicyMetrics;
+                found = true;
+                break;
+            }
+        }
+        if (!found && policyMetricsCount < policyMetricsArray.length) {
+            policyMetricsArray[policyMetricsCount] = currentPolicyMetrics;
+            policyMetricsCount++;
+        }
+    }
+
+    private void updateThroughputChart() {
+        org.jfree.chart.ChartPanel chartPanel;
+        if (policyMetricsCount == 0) {
+            chartPanel = util.JFreeChart.createEmptyBarChart();
+        } else {
+            chartPanel = util.JFreeChart.createThroughputBarChart(policyMetricsArray, policyMetricsCount);
+        }
+        Chart2Panel.removeAll();
+        Chart2Panel.setLayout(new java.awt.BorderLayout());
+        Chart2Panel.add(chartPanel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.add(G2UpdateBtn);
+        buttonPanel.add(RestartChart2Btn);
+        Chart2Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        Chart2Panel.revalidate();
+        Chart2Panel.repaint();
+    }
+
+    private void clearChart1() {
+        Chart1Panel.removeAll();
+        Chart1Panel.setLayout(new java.awt.BorderLayout());
+        javax.swing.JLabel messageLabel = new javax.swing.JLabel("Gráfico reiniciado. Presione 'Actualizar' para generar nuevo gráfico.", javax.swing.SwingConstants.CENTER);
+        messageLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        Chart1Panel.add(messageLabel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.add(G1UpdateBtn);
+        buttonPanel.add(RestartChart1Btn);
+        Chart1Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        Chart1Panel.revalidate();
+        Chart1Panel.repaint();
+    }
+
+    private void clearChart2AndMetrics() {
+        capturePolicyMetrics();
+        policyMetricsArray = new util.MetricsCalculator.PolicyMetrics[6];
+        policyMetricsCount = 0;
+        currentPolicyMetrics = null;
+        Chart2Panel.removeAll();
+        Chart2Panel.setLayout(new java.awt.BorderLayout());
+        javax.swing.JLabel messageLabel = new javax.swing.JLabel("Métricas reiniciadas. Ejecute simulaciones con diferentes políticas y presione 'Actualizar'.", javax.swing.SwingConstants.CENTER);
+        messageLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        Chart2Panel.add(messageLabel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.add(G2UpdateBtn);
+        buttonPanel.add(RestartChart2Btn);
+        Chart2Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        Chart2Panel.revalidate();
+        Chart2Panel.repaint();
+    }
+
+    /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
@@ -767,6 +949,13 @@ public class NewMainFrame extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         logTextArea = new javax.swing.JTextArea();
         Charts = new javax.swing.JPanel();
+        jTabbedPane2 = new javax.swing.JTabbedPane();
+        Chart1Panel = new javax.swing.JPanel();
+        G1UpdateBtn = new javax.swing.JButton();
+        RestartChart1Btn = new javax.swing.JButton();
+        Chart2Panel = new javax.swing.JPanel();
+        G2UpdateBtn = new javax.swing.JButton();
+        RestartChart2Btn = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -1088,6 +1277,83 @@ public class NewMainFrame extends javax.swing.JFrame {
 
         Charts.setBackground(new java.awt.Color(53, 73, 133));
         Charts.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        G1UpdateBtn.setText("Actualizar");
+        G1UpdateBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                G1UpdateBtnActionPerformed(evt);
+            }
+        });
+
+        RestartChart1Btn.setText("Reiniciar");
+        RestartChart1Btn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                RestartChart1BtnActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout Chart1PanelLayout = new javax.swing.GroupLayout(Chart1Panel);
+        Chart1Panel.setLayout(Chart1PanelLayout);
+        Chart1PanelLayout.setHorizontalGroup(
+            Chart1PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(Chart1PanelLayout.createSequentialGroup()
+                .addGap(397, 397, 397)
+                .addComponent(G1UpdateBtn)
+                .addGap(65, 65, 65)
+                .addComponent(RestartChart1Btn)
+                .addContainerGap(414, Short.MAX_VALUE))
+        );
+        Chart1PanelLayout.setVerticalGroup(
+            Chart1PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Chart1PanelLayout.createSequentialGroup()
+                .addContainerGap(514, Short.MAX_VALUE)
+                .addGroup(Chart1PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(G1UpdateBtn)
+                    .addComponent(RestartChart1Btn))
+                .addGap(38, 38, 38))
+        );
+
+        jTabbedPane2.addTab("G1", Chart1Panel);
+
+        G2UpdateBtn.setText("Actualizar");
+        G2UpdateBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                G2UpdateBtnActionPerformed(evt);
+            }
+        });
+
+        RestartChart2Btn.setText("Reiniciar");
+        RestartChart2Btn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                RestartChart2BtnActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout Chart2PanelLayout = new javax.swing.GroupLayout(Chart2Panel);
+        Chart2Panel.setLayout(Chart2PanelLayout);
+        Chart2PanelLayout.setHorizontalGroup(
+            Chart2PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(Chart2PanelLayout.createSequentialGroup()
+                .addGap(403, 403, 403)
+                .addComponent(G2UpdateBtn)
+                .addGap(59, 59, 59)
+                .addComponent(RestartChart2Btn)
+                .addContainerGap(412, Short.MAX_VALUE))
+        );
+        Chart2PanelLayout.setVerticalGroup(
+            Chart2PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Chart2PanelLayout.createSequentialGroup()
+                .addContainerGap(521, Short.MAX_VALUE)
+                .addGroup(Chart2PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(G2UpdateBtn)
+                    .addComponent(RestartChart2Btn))
+                .addGap(31, 31, 31))
+        );
+
+        jTabbedPane2.addTab("G2", Chart2Panel);
+
+        Charts.add(jTabbedPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1040, 610));
+
         jTabbedPane1.addTab("Graficos", Charts);
 
         getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, -1, -1));
@@ -1267,6 +1533,26 @@ public class NewMainFrame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_saveFileActionPerformed
 
+    private void G1UpdateBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_G1UpdateBtnActionPerformed
+        updateProcessTypeChart();
+    }//GEN-LAST:event_G1UpdateBtnActionPerformed
+
+    private void G2UpdateBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_G2UpdateBtnActionPerformed
+        updateThroughputChart();
+    }//GEN-LAST:event_G2UpdateBtnActionPerformed
+
+    private void RestartChart1BtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RestartChart1BtnActionPerformed
+        clearChart1();
+    }//GEN-LAST:event_RestartChart1BtnActionPerformed
+
+    private void RestartChart2BtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RestartChart2BtnActionPerformed
+        clearChart2AndMetrics();
+        String selectedPolicy = (String) policySelector.getSelectedItem();
+        if (selectedPolicy != null && operatingSystem != null && operatingSystem.isClockRunning()) {
+            startPolicyTracking(selectedPolicy);
+        }
+    }//GEN-LAST:event_RestartChart2BtnActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1306,13 +1592,19 @@ public class NewMainFrame extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel Chart1Panel;
+    private javax.swing.JPanel Chart2Panel;
     private javax.swing.JPanel Charts;
     private javax.swing.JPanel ControlsPanel;
     private javax.swing.JPanel CpuPanel;
     private javax.swing.JButton Create20ProcessBtn;
+    private javax.swing.JButton G1UpdateBtn;
+    private javax.swing.JButton G2UpdateBtn;
     private javax.swing.JPanel Logs;
     private javax.swing.JPanel QueuesPanel;
     private javax.swing.JSpinner RRQuantumSpinner;
+    private javax.swing.JButton RestartChart1Btn;
+    private javax.swing.JButton RestartChart2Btn;
     private javax.swing.JPanel Simulacion;
     private javax.swing.JButton StartBtn;
     private javax.swing.JSpinner arrivalSpinner;
@@ -1357,6 +1649,7 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane8;
     private javax.swing.JScrollPane jScrollPane9;
     private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JTabbedPane jTabbedPane2;
     private javax.swing.JSpinner level0Spinner;
     private javax.swing.JSpinner level1Spinner;
     private javax.swing.JSpinner level2Spinner;

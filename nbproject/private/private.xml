@@ -9,12 +9,10 @@
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/core/OperatingSystem.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/EnumMap.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/MetricsCalculator.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/FCFSMetrics.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/scheduler/Feedback.java</file>
             <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/ui/NewMainFrame.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/ArrayList.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/LinkedList.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/datastructures/NodeLinkedList.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/RandomProcessGenerator.java</file>
-            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/LogCapture.java</file>
+            <file>file:/Users/santiagodelcastillo/Desktop/P_SO1/src/util/JFreeChart.java</file>
         </group>
     </open-files>
 </project-private>
