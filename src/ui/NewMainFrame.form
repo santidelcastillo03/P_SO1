@@ -1029,18 +1029,23 @@
                     <DimensionLayout dim="0">
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Group type="102" alignment="0" attributes="0">
-                              <EmptySpace min="-2" pref="479" max="-2" attributes="0"/>
+                              <EmptySpace min="-2" pref="397" max="-2" attributes="0"/>
                               <Component id="G1UpdateBtn" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace pref="483" max="32767" attributes="0"/>
+                              <EmptySpace min="-2" pref="65" max="-2" attributes="0"/>
+                              <Component id="RestartChart1Btn" min="-2" max="-2" attributes="0"/>
+                              <EmptySpace pref="414" max="32767" attributes="0"/>
                           </Group>
                       </Group>
                     </DimensionLayout>
                     <DimensionLayout dim="1">
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Group type="102" alignment="1" attributes="0">
-                              <EmptySpace pref="513" max="32767" attributes="0"/>
-                              <Component id="G1UpdateBtn" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace min="-2" pref="39" max="-2" attributes="0"/>
+                              <EmptySpace pref="514" max="32767" attributes="0"/>
+                              <Group type="103" groupAlignment="3" attributes="0">
+                                  <Component id="G1UpdateBtn" alignment="3" min="-2" max="-2" attributes="0"/>
+                                  <Component id="RestartChart1Btn" alignment="3" min="-2" max="-2" attributes="0"/>
+                              </Group>
+                              <EmptySpace min="-2" pref="38" max="-2" attributes="0"/>
                           </Group>
                       </Group>
                     </DimensionLayout>
@@ -1052,6 +1057,14 @@
                       </Properties>
                       <Events>
                         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="G1UpdateBtnActionPerformed"/>
+                      </Events>
+                    </Component>
+                    <Component class="javax.swing.JButton" name="RestartChart1Btn">
+                      <Properties>
+                        <Property name="text" type="java.lang.String" value="Reiniciar"/>
+                      </Properties>
+                      <Events>
+                        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="RestartChart1BtnActionPerformed"/>
                       </Events>
                     </Component>
                   </SubComponents>
@@ -1069,18 +1082,23 @@
                     <DimensionLayout dim="0">
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Group type="102" alignment="0" attributes="0">
-                              <EmptySpace min="-2" pref="481" max="-2" attributes="0"/>
+                              <EmptySpace min="-2" pref="403" max="-2" attributes="0"/>
                               <Component id="G2UpdateBtn" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace pref="473" max="32767" attributes="0"/>
+                              <EmptySpace min="-2" pref="59" max="-2" attributes="0"/>
+                              <Component id="RestartChart2Btn" min="-2" max="-2" attributes="0"/>
+                              <EmptySpace pref="412" max="32767" attributes="0"/>
                           </Group>
                       </Group>
                     </DimensionLayout>
                     <DimensionLayout dim="1">
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Group type="102" alignment="1" attributes="0">
-                              <EmptySpace pref="519" max="32767" attributes="0"/>
-                              <Component id="G2UpdateBtn" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace min="-2" pref="33" max="-2" attributes="0"/>
+                              <EmptySpace pref="521" max="32767" attributes="0"/>
+                              <Group type="103" groupAlignment="3" attributes="0">
+                                  <Component id="G2UpdateBtn" alignment="3" min="-2" max="-2" attributes="0"/>
+                                  <Component id="RestartChart2Btn" alignment="3" min="-2" max="-2" attributes="0"/>
+                              </Group>
+                              <EmptySpace min="-2" pref="31" max="-2" attributes="0"/>
                           </Group>
                       </Group>
                     </DimensionLayout>
@@ -1092,6 +1110,14 @@
                       </Properties>
                       <Events>
                         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="G2UpdateBtnActionPerformed"/>
+                      </Events>
+                    </Component>
+                    <Component class="javax.swing.JButton" name="RestartChart2Btn">
+                      <Properties>
+                        <Property name="text" type="java.lang.String" value="Reiniciar"/>
+                      </Properties>
+                      <Events>
+                        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="RestartChart2BtnActionPerformed"/>
                       </Events>
                     </Component>
                   </SubComponents>

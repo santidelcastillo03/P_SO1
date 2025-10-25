@@ -113,4 +113,81 @@ public class MetricsCalculator {
             }
         }
     }
+
+    /**
+     * Clase para almacenar métricas de rendimiento de una política
+     */
+    public static class PolicyMetrics {
+        private String policyName;
+        private int completedProcesses;
+        private long totalCycles;
+        private long startCycle;
+        private long endCycle;
+
+        public PolicyMetrics(String policyName) {
+            this.policyName = policyName;
+            this.completedProcesses = 0;
+            this.totalCycles = 0;
+            this.startCycle = -1;
+            this.endCycle = -1;
+        }
+
+        public String getPolicyName() {
+            return policyName;
+        }
+
+        public void setCompletedProcesses(int completedProcesses) {
+            this.completedProcesses = completedProcesses;
+        }
+
+        public int getCompletedProcesses() {
+            return completedProcesses;
+        }
+
+        public void incrementCompletedProcesses() {
+            this.completedProcesses++;
+        }
+
+        public void setStartCycle(long startCycle) {
+            this.startCycle = startCycle;
+        }
+
+        public void setEndCycle(long endCycle) {
+            this.endCycle = endCycle;
+            if (startCycle >= 0 && endCycle >= startCycle) {
+                this.totalCycles = endCycle - startCycle;
+            }
+        }
+
+        public long getTotalCycles() {
+            return totalCycles;
+        }
+
+        /**
+         * Calcula el throughput (procesos completados por ciclo)
+         * @return throughput o 0 si no hay ciclos transcurridos
+         */
+        public double getThroughput() {
+            if (totalCycles <= 0) {
+                return 0.0;
+            }
+            return (double) completedProcesses / (double) totalCycles;
+        }
+
+        /**
+         * Calcula el throughput con ciclos actuales si la simulación está corriendo
+         * @param currentCycle ciclo actual del sistema
+         * @return throughput calculado
+         */
+        public double getCurrentThroughput(long currentCycle) {
+            if (startCycle < 0) {
+                return 0.0;
+            }
+            long cycles = currentCycle - startCycle;
+            if (cycles <= 0) {
+                return 0.0;
+            }
+            return (double) completedProcesses / (double) cycles;
+        }
+    }
 }

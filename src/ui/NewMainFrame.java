@@ -47,6 +47,9 @@ public class NewMainFrame extends javax.swing.JFrame {
     private ArrayList<PendingProcess> pendingProcesses;
     private RandomProcessGenerator processGenerator;
     private LogCapture logCapture;
+    private util.MetricsCalculator.PolicyMetrics[] policyMetricsArray;
+    private int policyMetricsCount;
+    private util.MetricsCalculator.PolicyMetrics currentPolicyMetrics;
     private static final String[] POLICY_OPTIONS = {
         "FCFS",
         "Round Robin",
@@ -62,6 +65,9 @@ public class NewMainFrame extends javax.swing.JFrame {
     public NewMainFrame() {
         pendingProcesses = new ArrayList<>();
         processGenerator = new RandomProcessGenerator();
+        policyMetricsArray = new util.MetricsCalculator.PolicyMetrics[6];
+        policyMetricsCount = 0;
+        currentPolicyMetrics = null;
         initializeSimulationComponents();
         initComponents();
         logCapture = new LogCapture(logTextArea);
@@ -191,6 +197,10 @@ public class NewMainFrame extends javax.swing.JFrame {
 
     private void applyPolicySelection(PolicyType policyType) {
         try {
+            boolean wasRunning = operatingSystem.isClockRunning();
+            if (wasRunning) {
+                capturePolicyMetrics();
+            }
             if (policyType == PolicyType.ROUND_ROBIN) {
                 int quantum = ((Number) RRQuantumSpinner.getValue()).intValue();
                 operatingSystem.setRoundRobinQuantum(quantum);
@@ -200,6 +210,12 @@ public class NewMainFrame extends javax.swing.JFrame {
                 operatingSystem.setFeedbackQuanta(feedbackValues[0], feedbackValues[1], feedbackValues[2], feedbackValues[3]);
             }
             operatingSystem.setSchedulingPolicy(policyType);
+            if (wasRunning) {
+                String policyLabel = (String) policySelector.getSelectedItem();
+                if (policyLabel != null) {
+                    startPolicyTracking(policyLabel);
+                }
+            }
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Configuración inválida", JOptionPane.ERROR_MESSAGE);
         }
@@ -291,16 +307,23 @@ public class NewMainFrame extends javax.swing.JFrame {
         startArrivalChecker();
         startUIUpdater();
         operatingSystem.startSystemClock();
+        String selectedPolicy = (String) policySelector.getSelectedItem();
+        if (selectedPolicy != null && currentPolicyMetrics == null) {
+            startPolicyTracking(selectedPolicy);
+        }
         updateSimulationControls();
     }
 
     private void pauseSimulation() {
         operatingSystem.stopSystemClock();
         shutdownUIUpdater();
+        capturePolicyMetrics();
         updateSimulationControls();
     }
 
     private void restartSimulation() {
+        capturePolicyMetrics();
+        currentPolicyMetrics = null;
         operatingSystem.stopSystemClock();
         shutdownIoHandler();
         shutdownArrivalChecker();
@@ -750,13 +773,98 @@ public class NewMainFrame extends javax.swing.JFrame {
         Chart1Panel.setLayout(new java.awt.BorderLayout());
         Chart1Panel.add(chartPanel, java.awt.BorderLayout.CENTER);
 
-        // Agregar el botón en la parte inferior
+        // Agregar los botones en la parte inferior
         javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
         buttonPanel.add(G1UpdateBtn);
+        buttonPanel.add(RestartChart1Btn);
         Chart1Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
 
         Chart1Panel.revalidate();
         Chart1Panel.repaint();
+    }
+
+    private void startPolicyTracking(String policyName) {
+        if (operatingSystem == null) {
+            return;
+        }
+        capturePolicyMetrics();
+        currentPolicyMetrics = new util.MetricsCalculator.PolicyMetrics(policyName);
+        currentPolicyMetrics.setStartCycle(operatingSystem.getGlobalClockCycle());
+    }
+
+    private void capturePolicyMetrics() {
+        if (currentPolicyMetrics == null || operatingSystem == null) {
+            return;
+        }
+        long currentCycle = operatingSystem.getGlobalClockCycle();
+        currentPolicyMetrics.setEndCycle(currentCycle);
+        ProcessControlBlock[] finishedProcesses = operatingSystem.getFinishedQueueSnapshot();
+        if (finishedProcesses != null) {
+            currentPolicyMetrics.setCompletedProcesses(finishedProcesses.length);
+        }
+        boolean found = false;
+        for (int i = 0; i < policyMetricsCount; i++) {
+            if (policyMetricsArray[i] != null &&
+                policyMetricsArray[i].getPolicyName().equals(currentPolicyMetrics.getPolicyName())) {
+                policyMetricsArray[i] = currentPolicyMetrics;
+                found = true;
+                break;
+            }
+        }
+        if (!found && policyMetricsCount < policyMetricsArray.length) {
+            policyMetricsArray[policyMetricsCount] = currentPolicyMetrics;
+            policyMetricsCount++;
+        }
+    }
+
+    private void updateThroughputChart() {
+        org.jfree.chart.ChartPanel chartPanel;
+        if (policyMetricsCount == 0) {
+            chartPanel = util.JFreeChart.createEmptyBarChart();
+        } else {
+            chartPanel = util.JFreeChart.createThroughputBarChart(policyMetricsArray, policyMetricsCount);
+        }
+        Chart2Panel.removeAll();
+        Chart2Panel.setLayout(new java.awt.BorderLayout());
+        Chart2Panel.add(chartPanel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.add(G2UpdateBtn);
+        buttonPanel.add(RestartChart2Btn);
+        Chart2Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        Chart2Panel.revalidate();
+        Chart2Panel.repaint();
+    }
+
+    private void clearChart1() {
+        Chart1Panel.removeAll();
+        Chart1Panel.setLayout(new java.awt.BorderLayout());
+        javax.swing.JLabel messageLabel = new javax.swing.JLabel("Gráfico reiniciado. Presione 'Actualizar' para generar nuevo gráfico.", javax.swing.SwingConstants.CENTER);
+        messageLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        Chart1Panel.add(messageLabel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.add(G1UpdateBtn);
+        buttonPanel.add(RestartChart1Btn);
+        Chart1Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        Chart1Panel.revalidate();
+        Chart1Panel.repaint();
+    }
+
+    private void clearChart2AndMetrics() {
+        capturePolicyMetrics();
+        policyMetricsArray = new util.MetricsCalculator.PolicyMetrics[6];
+        policyMetricsCount = 0;
+        currentPolicyMetrics = null;
+        Chart2Panel.removeAll();
+        Chart2Panel.setLayout(new java.awt.BorderLayout());
+        javax.swing.JLabel messageLabel = new javax.swing.JLabel("Métricas reiniciadas. Ejecute simulaciones con diferentes políticas y presione 'Actualizar'.", javax.swing.SwingConstants.CENTER);
+        messageLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        Chart2Panel.add(messageLabel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.add(G2UpdateBtn);
+        buttonPanel.add(RestartChart2Btn);
+        Chart2Panel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+        Chart2Panel.revalidate();
+        Chart2Panel.repaint();
     }
 
     /**
@@ -844,8 +952,10 @@ public class NewMainFrame extends javax.swing.JFrame {
         jTabbedPane2 = new javax.swing.JTabbedPane();
         Chart1Panel = new javax.swing.JPanel();
         G1UpdateBtn = new javax.swing.JButton();
+        RestartChart1Btn = new javax.swing.JButton();
         Chart2Panel = new javax.swing.JPanel();
         G2UpdateBtn = new javax.swing.JButton();
+        RestartChart2Btn = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -1175,21 +1285,32 @@ public class NewMainFrame extends javax.swing.JFrame {
             }
         });
 
+        RestartChart1Btn.setText("Reiniciar");
+        RestartChart1Btn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                RestartChart1BtnActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout Chart1PanelLayout = new javax.swing.GroupLayout(Chart1Panel);
         Chart1Panel.setLayout(Chart1PanelLayout);
         Chart1PanelLayout.setHorizontalGroup(
             Chart1PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(Chart1PanelLayout.createSequentialGroup()
-                .addGap(479, 479, 479)
+                .addGap(397, 397, 397)
                 .addComponent(G1UpdateBtn)
-                .addContainerGap(483, Short.MAX_VALUE))
+                .addGap(65, 65, 65)
+                .addComponent(RestartChart1Btn)
+                .addContainerGap(414, Short.MAX_VALUE))
         );
         Chart1PanelLayout.setVerticalGroup(
             Chart1PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Chart1PanelLayout.createSequentialGroup()
-                .addContainerGap(513, Short.MAX_VALUE)
-                .addComponent(G1UpdateBtn)
-                .addGap(39, 39, 39))
+                .addContainerGap(514, Short.MAX_VALUE)
+                .addGroup(Chart1PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(G1UpdateBtn)
+                    .addComponent(RestartChart1Btn))
+                .addGap(38, 38, 38))
         );
 
         jTabbedPane2.addTab("G1", Chart1Panel);
@@ -1201,21 +1322,32 @@ public class NewMainFrame extends javax.swing.JFrame {
             }
         });
 
+        RestartChart2Btn.setText("Reiniciar");
+        RestartChart2Btn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                RestartChart2BtnActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout Chart2PanelLayout = new javax.swing.GroupLayout(Chart2Panel);
         Chart2Panel.setLayout(Chart2PanelLayout);
         Chart2PanelLayout.setHorizontalGroup(
             Chart2PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(Chart2PanelLayout.createSequentialGroup()
-                .addGap(481, 481, 481)
+                .addGap(403, 403, 403)
                 .addComponent(G2UpdateBtn)
-                .addContainerGap(473, Short.MAX_VALUE))
+                .addGap(59, 59, 59)
+                .addComponent(RestartChart2Btn)
+                .addContainerGap(412, Short.MAX_VALUE))
         );
         Chart2PanelLayout.setVerticalGroup(
             Chart2PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Chart2PanelLayout.createSequentialGroup()
-                .addContainerGap(519, Short.MAX_VALUE)
-                .addComponent(G2UpdateBtn)
-                .addGap(33, 33, 33))
+                .addContainerGap(521, Short.MAX_VALUE)
+                .addGroup(Chart2PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(G2UpdateBtn)
+                    .addComponent(RestartChart2Btn))
+                .addGap(31, 31, 31))
         );
 
         jTabbedPane2.addTab("G2", Chart2Panel);
@@ -1406,8 +1538,20 @@ public class NewMainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_G1UpdateBtnActionPerformed
 
     private void G2UpdateBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_G2UpdateBtnActionPerformed
-        // TODO add your handling code here:
+        updateThroughputChart();
     }//GEN-LAST:event_G2UpdateBtnActionPerformed
+
+    private void RestartChart1BtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RestartChart1BtnActionPerformed
+        clearChart1();
+    }//GEN-LAST:event_RestartChart1BtnActionPerformed
+
+    private void RestartChart2BtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RestartChart2BtnActionPerformed
+        clearChart2AndMetrics();
+        String selectedPolicy = (String) policySelector.getSelectedItem();
+        if (selectedPolicy != null && operatingSystem != null && operatingSystem.isClockRunning()) {
+            startPolicyTracking(selectedPolicy);
+        }
+    }//GEN-LAST:event_RestartChart2BtnActionPerformed
 
     /**
      * @param args the command line arguments
@@ -1459,6 +1603,8 @@ public class NewMainFrame extends javax.swing.JFrame {
     private javax.swing.JPanel Logs;
     private javax.swing.JPanel QueuesPanel;
     private javax.swing.JSpinner RRQuantumSpinner;
+    private javax.swing.JButton RestartChart1Btn;
+    private javax.swing.JButton RestartChart2Btn;
     private javax.swing.JPanel Simulacion;
     private javax.swing.JButton StartBtn;
     private javax.swing.JSpinner arrivalSpinner;
