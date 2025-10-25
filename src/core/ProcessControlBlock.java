@@ -13,10 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger; // Para generación segura de 
 /**
  * Representa el bloque de control de un proceso (PCB) con los datos básicos
  * necesarios para gestionar su ciclo de vida dentro del simulador.
- * <p>
  * Cada proceso tiene un identificador único, nombre, estado, registros de contexto,
  * información de planificación (scheduling), y métricas de creación/finalización.
- * </p>
  */
 
 public class ProcessControlBlock {
